@@ -25,6 +25,12 @@ ngx_create_pool(size_t size, ngx_log_t *log)
         return NULL;
     }
 
+    /*
+    * Nginx会分配一块大内存，其中内存头部存放ngx_pool_t本身内存池的数据结构
+    * ngx_pool_data_t  p->d 存放内存池的数据部分（适合小于p->max的内存块存储）
+    * p->large 存放大内存块列表
+    * p->cleanup 存放可以被回调函数清理的内存块（该内存块不一定会在内存池上面分配）
+    */
     p->d.last = (u_char *) p + sizeof(ngx_pool_t);
     p->d.end = (u_char *) p + size;
     p->d.next = NULL;
@@ -33,6 +39,7 @@ ngx_create_pool(size_t size, ngx_log_t *log)
     size = size - sizeof(ngx_pool_t);
     p->max = (size < NGX_MAX_ALLOC_FROM_POOL) ? size : NGX_MAX_ALLOC_FROM_POOL;
 
+    /* 只有缓存池的父节点，才会用到下面的这些  ，子节点只挂载在p->d.next,并且只负责p->d的数据内容*/
     p->current = p;
     p->chain = NULL;
     p->large = NULL;
@@ -154,22 +161,26 @@ ngx_palloc_small(ngx_pool_t *pool, size_t size, ngx_uint_t align)
     p = pool->current;
 
     do {
-        m = p->d.last;
+        m = p->d.last;  // 未使用内存的开始位置
 
         if (align) {
+            // 向上取整内存对齐
             m = ngx_align_ptr(m, NGX_ALIGNMENT);
         }
 
+        // 结束地址 - 开始地址 >= 请求大小
         if ((size_t) (p->d.end - m) >= size) {
             p->d.last = m + size;
 
             return m;
         }
 
+        // 如果不够分配，寻找下一个ngx_pool_t
         p = p->d.next;
 
     } while (p);
 
+    /* 如果没有缓存池空间没有可以容纳大小为size的内存块，则需要重新申请一个缓存池pool节点 */
     return ngx_palloc_block(pool, size);
 }
 
@@ -181,6 +192,7 @@ ngx_palloc_block(ngx_pool_t *pool, size_t size)
     size_t       psize;
     ngx_pool_t  *p, *new;
 
+    // 计算ngx_pool_t分配的内存大小
     psize = (size_t) (pool->d.end - (u_char *) pool);
 
     m = ngx_memalign(NGX_POOL_ALIGNMENT, psize, pool->log);
@@ -194,10 +206,19 @@ ngx_palloc_block(ngx_pool_t *pool, size_t size)
     new->d.next = NULL;
     new->d.failed = 0;
 
-    m += sizeof(ngx_pool_data_t);
-    m = ngx_align_ptr(m, NGX_ALIGNMENT);
+    m += sizeof(ngx_pool_data_t);   // 跳过头部长度
+    m = ngx_align_ptr(m, NGX_ALIGNMENT);    // 内存对齐
     new->d.last = m + size;
 
+    /*
+    * 缓存池的pool数据结构会挂载子节点的ngx_pool_t数据结构
+    * 子节点的ngx_pool_t数据结构中只用到pool->d的结构，只保存数据
+    * 每添加一个子节点，p->d.failed就会+1，当添加超过4个子节点的时候，
+    * pool->current会指向到最新的子节点地址
+    *
+    * 这个逻辑主要是为了防止pool上的子节点过多，导致每次ngx_palloc循环pool->d.next链表
+    * 将pool->current设置成最新的子节点之后，每次最大循环4次，不会去遍历整个缓存池链表
+    */
     for (p = pool->current; p->d.next; p = p->d.next) {
         if (p->d.failed++ > 4) {
             pool->current = p->d.next;
