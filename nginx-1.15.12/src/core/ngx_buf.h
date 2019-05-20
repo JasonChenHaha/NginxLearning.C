@@ -18,53 +18,53 @@ typedef void *            ngx_buf_tag_t;
 typedef struct ngx_buf_s  ngx_buf_t;
 
 struct ngx_buf_s {
-    u_char          *pos;
-    u_char          *last;
-    off_t            file_pos;
-    off_t            file_last;
+    u_char          *pos;               // 待处理数据的开始标记
+    u_char          *last;              // 待处理数据的结尾标记
+    off_t            file_pos;          // 处理文件时，待处理的文件开始标记
+    off_t            file_last;         // 处理文件时，待处理的文件的结尾标记
 
-    u_char          *start;         /* start of buffer */
-    u_char          *end;           /* end of buffer */
+    u_char          *start;             /* start of buffer */
+    u_char          *end;               /* end of buffer */
     ngx_buf_tag_t    tag;
-    ngx_file_t      *file;
+    ngx_file_t      *file;              // 引用的文件
     ngx_buf_t       *shadow;
 
 
     /* the buf's content could be changed */
-    unsigned         temporary:1;
+    unsigned         temporary:1;       // 内存是否可修改
 
     /*
      * the buf's content is in a memory cache or in a read only memory
      * and must not be changed
      */
-    unsigned         memory:1;
+    unsigned         memory:1;          // 内存是否只读
 
     /* the buf's content is mmap()ed and must not be changed */
-    unsigned         mmap:1;
+    unsigned         mmap:1;            // mmap映射过来的内存，不可修改
 
-    unsigned         recycled:1;
-    unsigned         in_file:1;
-    unsigned         flush:1;
-    unsigned         sync:1;
-    unsigned         last_buf:1;
-    unsigned         last_in_chain:1;
+    unsigned         recycled:1;        // 是否可回收
+    unsigned         in_file:1;         // 是否是文件
+    unsigned         flush:1;           // 是否需要进行flush操作
+    unsigned         sync:1;            // 是否可以进行同步操作
+    unsigned         last_buf:1;        // 是否为缓冲区链表ngx_chain_t上的最后一块待处理缓冲区
+    unsigned         last_in_chain:1;   // 是否为缓冲区链表ngx_chain_t上的最后一块缓冲区
 
-    unsigned         last_shadow:1;
-    unsigned         temp_file:1;
+    unsigned         last_shadow:1;     // 是否是最后一个影子缓冲区
+    unsigned         temp_file:1;       // 是否是临时文件
 
     /* STUB */ int   num;
 };
 
-
+// 缓冲区链表，放在pool内存池中, pool->chain
 struct ngx_chain_s {
     ngx_buf_t    *buf;
-    ngx_chain_t  *next;
+    ngx_chain_t  *next;     // 就是ngx_chain_s
 };
 
-
+// 用来作为ngx_create_chain_of_bufs函数的入参包装的接头体
 typedef struct {
-    ngx_int_t    num;
-    size_t       size;
+    ngx_int_t    num;       // 要申请的ngx_buf_t数量
+    size_t       size;      // 每一个ngx_buf_t的大小
 } ngx_bufs_t;
 
 
@@ -140,13 +140,16 @@ typedef struct {
     (ngx_buf_in_memory(b) ? (off_t) (b->last - b->pos):                      \
                             (b->file_last - b->file_pos))
 
+// 创建一个缓冲区
 ngx_buf_t *ngx_create_temp_buf(ngx_pool_t *pool, size_t size);
+// 批量创建多个ngx_buf_t，并用ngx_chain_t串起来
 ngx_chain_t *ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs);
 
 
 #define ngx_alloc_buf(pool)  ngx_palloc(pool, sizeof(ngx_buf_t))
 #define ngx_calloc_buf(pool) ngx_pcalloc(pool, sizeof(ngx_buf_t))
 
+// 创建一个缓冲区的链表结构
 ngx_chain_t *ngx_alloc_chain_link(ngx_pool_t *pool);
 #define ngx_free_chain(pool, cl)                                             \
     cl->next = pool->chain;                                                  \
@@ -157,8 +160,10 @@ ngx_chain_t *ngx_alloc_chain_link(ngx_pool_t *pool);
 ngx_int_t ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in);
 ngx_int_t ngx_chain_writer(void *ctx, ngx_chain_t *in);
 
+// 拷贝ngx_chain_t
 ngx_int_t ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain,
     ngx_chain_t *in);
+// get一个空闲的ngx_chain_t
 ngx_chain_t *ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free);
 void ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free,
     ngx_chain_t **busy, ngx_chain_t **out, ngx_buf_tag_t tag);

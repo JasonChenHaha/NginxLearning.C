@@ -76,17 +76,25 @@ typedef struct {
 ngx_pool_t *ngx_create_pool(size_t size, ngx_log_t *log);
 // 销毁内存池
 void ngx_destroy_pool(ngx_pool_t *pool);
+// 重置内存池
 void ngx_reset_pool(ngx_pool_t *pool);
 
+// 子内存分配
 void *ngx_palloc(ngx_pool_t *pool, size_t size);
+// 非对齐方式的子内存分配
 void *ngx_pnalloc(ngx_pool_t *pool, size_t size);
+// 调用ngx_palloc并清零
 void *ngx_pcalloc(ngx_pool_t *pool, size_t size);
+// 申请一块大数据内存，然后从pool申请一个ngx_pool_large_t载体将其存放进去
 void *ngx_pmemalign(ngx_pool_t *pool, size_t size, size_t alignment);
+// 大块内存释放
 ngx_int_t ngx_pfree(ngx_pool_t *pool, void *p);
 
-
+// 从ngx_pool的子内存中创建ngx_pool_cleanup_t对象
 ngx_pool_cleanup_t *ngx_pool_cleanup_add(ngx_pool_t *p, size_t size);
+// 执行cleanup的清理回掉函数
 void ngx_pool_run_cleanup_file(ngx_pool_t *p, ngx_fd_t fd);
+// 默认的cleanup清理函数
 void ngx_pool_cleanup_file(void *data);
 void ngx_pool_delete_file(void *data);
 

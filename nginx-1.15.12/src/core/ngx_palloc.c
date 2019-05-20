@@ -14,7 +14,7 @@ static ngx_inline void *ngx_palloc_small(ngx_pool_t *pool, size_t size,
 static void *ngx_palloc_block(ngx_pool_t *pool, size_t size);
 static void *ngx_palloc_large(ngx_pool_t *pool, size_t size);
 
-
+// 创建内存池
 ngx_pool_t *
 ngx_create_pool(size_t size, ngx_log_t *log)
 {
@@ -49,7 +49,7 @@ ngx_create_pool(size_t size, ngx_log_t *log)
     return p;
 }
 
-
+// 销毁内存池
 void
 ngx_destroy_pool(ngx_pool_t *pool)
 {
@@ -102,7 +102,7 @@ ngx_destroy_pool(ngx_pool_t *pool)
     }
 }
 
-
+// 重置内存池
 void
 ngx_reset_pool(ngx_pool_t *pool)
 {
@@ -125,7 +125,7 @@ ngx_reset_pool(ngx_pool_t *pool)
     pool->large = NULL;
 }
 
-
+// 子内存分配
 void *
 ngx_palloc(ngx_pool_t *pool, size_t size)
 {
@@ -138,7 +138,7 @@ ngx_palloc(ngx_pool_t *pool, size_t size)
     return ngx_palloc_large(pool, size);
 }
 
-
+// 非对齐方式的子内存分配
 void *
 ngx_pnalloc(ngx_pool_t *pool, size_t size)
 {
@@ -151,7 +151,7 @@ ngx_pnalloc(ngx_pool_t *pool, size_t size)
     return ngx_palloc_large(pool, size);
 }
 
-
+// 小数据子内存分配
 static ngx_inline void *
 ngx_palloc_small(ngx_pool_t *pool, size_t size, ngx_uint_t align)
 {
@@ -184,7 +184,7 @@ ngx_palloc_small(ngx_pool_t *pool, size_t size, ngx_uint_t align)
     return ngx_palloc_block(pool, size);
 }
 
-
+// 重新申请一个缓存池pool节点
 static void *
 ngx_palloc_block(ngx_pool_t *pool, size_t size)
 {
@@ -214,7 +214,7 @@ ngx_palloc_block(ngx_pool_t *pool, size_t size)
     * 缓存池的pool数据结构会挂载子节点的ngx_pool_t数据结构
     * 子节点的ngx_pool_t数据结构中只用到pool->d的结构，只保存数据
     * 每添加一个子节点，p->d.failed就会+1，当添加超过4个子节点的时候，
-    * pool->current会指向到最新的子节点地址
+    * pool->current会指向下一个的子节点地址
     *
     * 这个逻辑主要是为了防止pool上的子节点过多，导致每次ngx_palloc循环pool->d.next链表
     * 将pool->current设置成最新的子节点之后，每次最大循环4次，不会去遍历整个缓存池链表
@@ -230,7 +230,7 @@ ngx_palloc_block(ngx_pool_t *pool, size_t size)
     return m;
 }
 
-
+// 大数据块申请
 static void *
 ngx_palloc_large(ngx_pool_t *pool, size_t size)
 {
@@ -245,6 +245,10 @@ ngx_palloc_large(ngx_pool_t *pool, size_t size)
 
     n = 0;
 
+    /* 
+    * 去pool->large链表上查询是否有NULL的，只在链表上往下查询3次，
+    * 主要判断大数据块是否有被释放的，如果没有则只能跳出
+    */
     for (large = pool->large; large; large = large->next) {
         if (large->alloc == NULL) {
             large->alloc = p;
@@ -256,6 +260,7 @@ ngx_palloc_large(ngx_pool_t *pool, size_t size)
         }
     }
 
+    // 当上面跳出之后，在子内存申请一块ngx_pool_large_s内存
     large = ngx_palloc_small(pool, sizeof(ngx_pool_large_t), 1);
     if (large == NULL) {
         ngx_free(p);
@@ -269,7 +274,7 @@ ngx_palloc_large(ngx_pool_t *pool, size_t size)
     return p;
 }
 
-
+// 申请一块大数据内存，然后从pool申请一个ngx_pool_large_t载体将其存放进去
 void *
 ngx_pmemalign(ngx_pool_t *pool, size_t size, size_t alignment)
 {
@@ -294,12 +299,13 @@ ngx_pmemalign(ngx_pool_t *pool, size_t size, size_t alignment)
     return p;
 }
 
-
+// 大块内存释放
 ngx_int_t
 ngx_pfree(ngx_pool_t *pool, void *p)
 {
     ngx_pool_large_t  *l;
 
+    // 把大块数据的链表全部销毁
     for (l = pool->large; l; l = l->next) {
         if (p == l->alloc) {
             ngx_log_debug1(NGX_LOG_DEBUG_ALLOC, pool->log, 0,
@@ -314,7 +320,7 @@ ngx_pfree(ngx_pool_t *pool, void *p)
     return NGX_DECLINED;
 }
 
-
+// 调用ngx_palloc分配子内存并清零
 void *
 ngx_pcalloc(ngx_pool_t *pool, size_t size)
 {
@@ -328,12 +334,13 @@ ngx_pcalloc(ngx_pool_t *pool, size_t size)
     return p;
 }
 
-
+// 从ngx_pool的子内存中创建ngx_pool_cleanup_t对象
 ngx_pool_cleanup_t *
 ngx_pool_cleanup_add(ngx_pool_t *p, size_t size)
 {
     ngx_pool_cleanup_t  *c;
 
+    // 分配子内存
     c = ngx_palloc(p, sizeof(ngx_pool_cleanup_t));
     if (c == NULL) {
         return NULL;
@@ -359,7 +366,7 @@ ngx_pool_cleanup_add(ngx_pool_t *p, size_t size)
     return c;
 }
 
-
+// 执行cleanup的清理回掉函数
 void
 ngx_pool_run_cleanup_file(ngx_pool_t *p, ngx_fd_t fd)
 {
@@ -380,7 +387,7 @@ ngx_pool_run_cleanup_file(ngx_pool_t *p, ngx_fd_t fd)
     }
 }
 
-
+// 默认的cleanup清理函数
 void
 ngx_pool_cleanup_file(void *data)
 {
@@ -388,7 +395,7 @@ ngx_pool_cleanup_file(void *data)
 
     ngx_log_debug1(NGX_LOG_DEBUG_ALLOC, c->log, 0, "file cleanup: fd:%d",
                    c->fd);
-
+    // 关闭文件fd
     if (ngx_close_file(c->fd) == NGX_FILE_ERROR) {
         ngx_log_error(NGX_LOG_ALERT, c->log, ngx_errno,
                       ngx_close_file_n " \"%s\" failed", c->name);
@@ -406,6 +413,7 @@ ngx_pool_delete_file(void *data)
     ngx_log_debug2(NGX_LOG_DEBUG_ALLOC, c->log, 0, "file cleanup: fd:%d %s",
                    c->fd, c->name);
 
+    // 删除指定文件
     if (ngx_delete_file(c->name) == NGX_FILE_ERROR) {
         err = ngx_errno;
 
@@ -415,6 +423,7 @@ ngx_pool_delete_file(void *data)
         }
     }
 
+    // 关闭文件fd
     if (ngx_close_file(c->fd) == NGX_FILE_ERROR) {
         ngx_log_error(NGX_LOG_ALERT, c->log, ngx_errno,
                       ngx_close_file_n " \"%s\" failed", c->name);
