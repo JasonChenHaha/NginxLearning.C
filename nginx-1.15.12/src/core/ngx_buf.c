@@ -194,7 +194,9 @@ ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free)
     return cl;
 }
 
-
+// 把out链表连接到busy链表尾部，然后逐一清空，直到某个节点缓存大小为0
+// 清空方式有两种，如果节点tag等于入参tag，清空并添加到free链表头部，
+// 否则将节点插入ngx_pool_t缓存池的chain中
 void
 ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free, ngx_chain_t **busy,
     ngx_chain_t **out, ngx_buf_tag_t tag)
@@ -225,20 +227,23 @@ ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free, ngx_chain_t **busy,
 
         if (cl->buf->tag != tag) {
             *busy = cl->next;
-            ngx_free_chain(p, cl);
+            ngx_free_chain(p, cl);          // 把该节点插入到ngx_pool_t的chain链表的头部
             continue;
         }
 
+        // 初始化内存边界
         cl->buf->pos = cl->buf->start;
         cl->buf->last = cl->buf->start;
 
         *busy = cl->next;
+        // 将cl放到free链表上
         cl->next = *free;
         *free = cl;
     }
 }
 
-
+// 合并in节点和后面节点缓存的同一文件的数据
+// 但并不是真的合并在一起，因为缓存已经是连续的了，而是获得最后一个节点位置
 off_t
 ngx_chain_coalesce_file(ngx_chain_t **in, off_t limit)
 {
@@ -252,16 +257,17 @@ ngx_chain_coalesce_file(ngx_chain_t **in, off_t limit)
     fd = cl->buf->file->fd;
 
     do {
-        size = cl->buf->file_last - cl->buf->file_pos;
+        size = cl->buf->file_last - cl->buf->file_pos;  // 文件大小
 
         if (size > limit - total) {
             size = limit - total;
 
+            // 计算size大小的并且是按分页大小内存对齐的偏移量
             aligned = (cl->buf->file_pos + size + ngx_pagesize - 1)
                        & ~((off_t) ngx_pagesize - 1);
 
             if (aligned <= cl->buf->file_last) {
-                size = aligned - cl->buf->file_pos;
+                size = aligned - cl->buf->file_pos;     // 实际size大小
             }
 
             total += size;
@@ -269,7 +275,7 @@ ngx_chain_coalesce_file(ngx_chain_t **in, off_t limit)
         }
 
         total += size;
-        fprev = cl->buf->file_pos + size;
+        fprev = cl->buf->file_pos + size;       // fprev == aligned
         cl = cl->next;
 
     } while (cl
@@ -277,13 +283,18 @@ ngx_chain_coalesce_file(ngx_chain_t **in, off_t limit)
              && total < limit
              && fd == cl->buf->file->fd
              && fprev == cl->buf->file_pos);
+    // 条件
+    // 1.存在下一个ngx_chain_t节点
+    // 2.总大小<小于限定
+    // 3.当前ngx_buf_s的文件fd要等于初始的fd
+    // 4.文件数据在缓存块上需要是连续的
 
     *in = cl;
 
     return total;
 }
 
-
+// 从in指向的节点开始，把后面节点缓存的开始标记向后移动累计sent位
 ngx_chain_t *
 ngx_chain_update_sent(ngx_chain_t *in, off_t sent)
 {
@@ -302,8 +313,9 @@ ngx_chain_update_sent(ngx_chain_t *in, off_t sent)
         size = ngx_buf_size(in->buf);
 
         if (sent >= size) {
-            sent -= size;
+            sent -= size;           // 全部发送
 
+            // 把开始标记移动到结尾标记处
             if (ngx_buf_in_memory(in->buf)) {
                 in->buf->pos = in->buf->last;
             }

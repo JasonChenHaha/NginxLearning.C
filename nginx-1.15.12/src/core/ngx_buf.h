@@ -165,11 +165,15 @@ ngx_int_t ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain,
     ngx_chain_t *in);
 // get一个空闲的ngx_chain_t
 ngx_chain_t *ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free);
+// 把out链表连接到busy链表尾部，然后逐一清空，直到某个节点缓存大小为0
+// 清空方式有两种，如果节点tag等于入参tag，清空并添加到free链表头部，
+// 否则将节点插入ngx_pool_t缓存池的chain中
 void ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free,
     ngx_chain_t **busy, ngx_chain_t **out, ngx_buf_tag_t tag);
-
+// 合并in节点和后面节点缓存的同一文件的数据
+// 但并不是真的合并在一起，因为缓存已经是连续的了，而是获得最后一个节点位置
 off_t ngx_chain_coalesce_file(ngx_chain_t **in, off_t limit);
-
+// 从in指向的节点开始，把后面节点缓存的开始标记向后移动累计sent位
 ngx_chain_t *ngx_chain_update_sent(ngx_chain_t *in, off_t sent);
 
 #endif /* _NGX_BUF_H_INCLUDED_ */
