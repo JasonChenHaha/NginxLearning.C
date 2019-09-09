@@ -48,10 +48,10 @@ ngx_array_destroy(ngx_array_t *a)
         p->d.last = (u_char *) a;
     }
 
-    // 如果不是尾部，要到什么时候才会清楚呢？届时还能知道内存类型吗
+    // 如果不是尾部，要到什么时候才会清除呢？届时还能知道内存类型吗
 }
 
-// 使用一个元素
+// 添加一个元素
 void *
 ngx_array_push(ngx_array_t *a)
 {
@@ -103,7 +103,7 @@ ngx_array_push(ngx_array_t *a)
     return elt;
 }
 
-// 使用多个元素
+// 添加多个元素
 void *
 ngx_array_push_n(ngx_array_t *a, ngx_uint_t n)
 {

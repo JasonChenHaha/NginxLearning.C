@@ -194,7 +194,7 @@ ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free)
     return cl;
 }
 
-// 把out链表连接到busy链表尾部，然后逐一清空，直到某个节点缓存大小为0
+// 把out链表连接到busy链表尾部，然后逐一清空busy链表，直到某个节点缓存大小为0
 // 清空方式有两种，如果节点tag等于入参tag，清空并添加到free链表头部，
 // 否则将节点插入ngx_pool_t缓存池的chain中
 void

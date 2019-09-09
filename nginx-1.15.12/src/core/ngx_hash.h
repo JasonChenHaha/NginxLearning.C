@@ -12,26 +12,26 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 
-
+// 存储hash的元素
 typedef struct {
     void             *value;
-    u_short           len;
-    u_char            name[1];
+    u_short           len;      // key的长度
+    u_char            name[1];  // 指向key的第一个地址，key长度为变长(设计上的亮点)
 } ngx_hash_elt_t;
 
-
+// hash的桶
 typedef struct {
-    ngx_hash_elt_t  **buckets;
-    ngx_uint_t        size;
+    ngx_hash_elt_t  **buckets;  // hash表的桶指针地址
+    ngx_uint_t        size;     // hash表的桶数
 } ngx_hash_t;
 
-
+// 通配结构
 typedef struct {
     ngx_hash_t        hash;
     void             *value;
 } ngx_hash_wildcard_t;
 
-
+// key结构
 typedef struct {
     ngx_str_t         key;
     ngx_uint_t        key_hash;
@@ -48,17 +48,18 @@ typedef struct {
     ngx_hash_wildcard_t  *wc_tail;
 } ngx_hash_combined_t;
 
-
+// hash表初始化结构
+// 用这个结构体去初始化一个hash表
 typedef struct {
     ngx_hash_t       *hash;
-    ngx_hash_key_pt   key;
+    ngx_hash_key_pt   key;          // 计算key散列的方法
 
-    ngx_uint_t        max_size;
-    ngx_uint_t        bucket_size;
+    ngx_uint_t        max_size;     // 最大容量
+    ngx_uint_t        bucket_size;  // 桶的最大容量
 
-    char             *name;
+    char             *name;         // hash表名称
     ngx_pool_t       *pool;
-    ngx_pool_t       *temp_pool;
+    ngx_pool_t       *temp_pool;    // 临时内存池
 } ngx_hash_init_t;
 
 
@@ -96,13 +97,17 @@ typedef struct {
     u_char           *lowcase_key;
 } ngx_table_elt_t;
 
-
+// 在hash表中查找key
 void *ngx_hash_find(ngx_hash_t *hash, ngx_uint_t key, u_char *name, size_t len);
 void *ngx_hash_find_wc_head(ngx_hash_wildcard_t *hwc, u_char *name, size_t len);
 void *ngx_hash_find_wc_tail(ngx_hash_wildcard_t *hwc, u_char *name, size_t len);
 void *ngx_hash_find_combined(ngx_hash_combined_t *hash, ngx_uint_t key,
     u_char *name, size_t len);
 
+// 初始化hash表
+// hinit是辅助初始化的结构体
+// names是key数组
+// nelts是key元素数量
 ngx_int_t ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names,
     ngx_uint_t nelts);
 ngx_int_t ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names,

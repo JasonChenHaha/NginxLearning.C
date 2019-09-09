@@ -27,6 +27,7 @@ ngx_queue_middle(ngx_queue_t *queue)
 
     next = ngx_queue_head(queue);
 
+    // 快慢指针步进方式
     for ( ;; ) {
         middle = ngx_queue_next(middle);
 

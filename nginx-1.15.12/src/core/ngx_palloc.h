@@ -42,7 +42,7 @@ typedef struct ngx_pool_large_s  ngx_pool_large_t;
 
 struct ngx_pool_large_s {
     ngx_pool_large_t     *next;         // 指向下一个存储地址 通过这个地址可以知道当前块长度
-    void                 *alloc;        // 数据快指针地址
+    void                 *alloc;        // 数据块指针地址
 };
 
 

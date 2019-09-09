@@ -57,6 +57,7 @@ ngx_destroy_pool(ngx_pool_t *pool)
     ngx_pool_large_t    *l;
     ngx_pool_cleanup_t  *c;
 
+    // 清除内存块分配的内存
     for (c = pool->cleanup; c; c = c->next) {
         if (c->handler) {
             ngx_log_debug1(NGX_LOG_DEBUG_ALLOC, pool->log, 0,
@@ -71,7 +72,7 @@ ngx_destroy_pool(ngx_pool_t *pool)
      * we could allocate the pool->log from this pool
      * so we cannot use this log while free()ing the pool
      */
-
+    // 销毁之前遍历输出日志
     for (l = pool->large; l; l = l->next) {
         ngx_log_debug1(NGX_LOG_DEBUG_ALLOC, pool->log, 0, "free: %p", l->alloc);
     }
@@ -87,12 +88,14 @@ ngx_destroy_pool(ngx_pool_t *pool)
 
 #endif
 
+    // 清理大数据链
     for (l = pool->large; l; l = l->next) {
         if (l->alloc) {
             ngx_free(l->alloc);
         }
     }
 
+    // 清理pool链
     for (p = pool, n = pool->d.next; /* void */; p = n, n = n->d.next) {
         ngx_free(p);
 
@@ -109,12 +112,14 @@ ngx_reset_pool(ngx_pool_t *pool)
     ngx_pool_t        *p;
     ngx_pool_large_t  *l;
 
+    // 清理大数据链
     for (l = pool->large; l; l = l->next) {
         if (l->alloc) {
             ngx_free(l->alloc);
         }
     }
 
+    // 重置pool的内存池
     for (p = pool; p; p = p->d.next) {
         p->d.last = (u_char *) p + sizeof(ngx_pool_t);
         p->d.failed = 0;
@@ -267,6 +272,7 @@ ngx_palloc_large(ngx_pool_t *pool, size_t size)
         return NULL;
     }
 
+    // 放到链表头部
     large->alloc = p;
     large->next = pool->large;
     pool->large = large;

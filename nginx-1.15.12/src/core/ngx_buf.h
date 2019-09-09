@@ -61,7 +61,7 @@ struct ngx_chain_s {
     ngx_chain_t  *next;     // 就是ngx_chain_s
 };
 
-// 用来作为ngx_create_chain_of_bufs函数的入参包装的接头体
+// 用来作为ngx_create_chain_of_bufs函数的入参包装的结构体
 typedef struct {
     ngx_int_t    num;       // 要申请的ngx_buf_t数量
     size_t       size;      // 每一个ngx_buf_t的大小
@@ -136,6 +136,7 @@ typedef struct {
     (b->sync                                                                 \
      && !ngx_buf_in_memory(b) && !b->in_file && !b->flush && !b->last_buf)
 
+// 根据ngx_buf_in_memory来区分是内存还是文件
 #define ngx_buf_size(b)                                                      \
     (ngx_buf_in_memory(b) ? (off_t) (b->last - b->pos):                      \
                             (b->file_last - b->file_pos))
@@ -151,6 +152,8 @@ ngx_chain_t *ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs);
 
 // 创建一个缓冲区的链表结构
 ngx_chain_t *ngx_alloc_chain_link(ngx_pool_t *pool);
+// 释放一个缓冲区链表ngx_chain_t
+// 直接交还给ngx_pool_t缓存池
 #define ngx_free_chain(pool, cl)                                             \
     cl->next = pool->chain;                                                  \
     pool->chain = cl

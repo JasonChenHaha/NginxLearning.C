@@ -29,7 +29,7 @@ struct ngx_queue_s {
 #define ngx_queue_empty(h)                                                    \
     (h == (h)->prev)
 
-
+// h - x - next_h
 #define ngx_queue_insert_head(h, x)                                           \
     (x)->next = (h)->next;                                                    \
     (x)->next->prev = x;                                                      \
@@ -39,7 +39,7 @@ struct ngx_queue_s {
 
 #define ngx_queue_insert_after   ngx_queue_insert_head
 
-
+// prev_h - x - h
 #define ngx_queue_insert_tail(h, x)                                           \
     (x)->prev = (h)->prev;                                                    \
     (x)->prev->next = x;                                                      \
@@ -83,7 +83,8 @@ struct ngx_queue_s {
 
 #endif
 
-
+// prev_h - n - q
+// prev_q - h
 #define ngx_queue_split(h, q, n)                                              \
     (n)->prev = (h)->prev;                                                    \
     (n)->prev->next = n;                                                      \
@@ -92,7 +93,8 @@ struct ngx_queue_s {
     (h)->prev->next = h;                                                      \
     (q)->prev = n;
 
-
+// prev_h - next_n
+// prev_n - h
 #define ngx_queue_add(h, n)                                                   \
     (h)->prev->next = (n)->next;                                              \
     (n)->next->prev = (h)->prev;                                              \
