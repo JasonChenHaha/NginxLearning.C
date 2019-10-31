@@ -63,6 +63,7 @@ ngx_hash_find_wc_head(ngx_hash_wildcard_t *hwc, u_char *name, size_t len)
 
     n = len;
 
+    // 查找name字符串中最后一个"."的位置
     while (n) {
         if (name[n - 1] == '.') {
             break;
@@ -73,6 +74,7 @@ ngx_hash_find_wc_head(ngx_hash_wildcard_t *hwc, u_char *name, size_t len)
 
     key = 0;
 
+    // 把"."后面的字符作一连续的hash计算得到key
     for (i = n; i < len; i++) {
         key = ngx_hash(key, name[i]);
     }
@@ -81,6 +83,7 @@ ngx_hash_find_wc_head(ngx_hash_wildcard_t *hwc, u_char *name, size_t len)
     ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0, "key:\"%ui\"", key);
 #endif
 
+    // 在key指定的桶子里匹配找到value指针
     value = ngx_hash_find(&hwc->hash, key, &name[n], len - n);
 
 #if 0
@@ -110,13 +113,14 @@ ngx_hash_find_wc_head(ngx_hash_wildcard_t *hwc, u_char *name, size_t len)
                     return NULL;
                 }
 
+                // 去掉尾部的2个字节
                 hwc = (ngx_hash_wildcard_t *)
                                           ((uintptr_t) value & (uintptr_t) ~3);
                 return hwc->value;
             }
 
             hwc = (ngx_hash_wildcard_t *) ((uintptr_t) value & (uintptr_t) ~3);
-
+            // 递归子查询
             value = ngx_hash_find_wc_head(hwc, name, n - 1);
 
             if (value) {
@@ -141,6 +145,7 @@ ngx_hash_find_wc_head(ngx_hash_wildcard_t *hwc, u_char *name, size_t len)
         return value;
     }
 
+    // 桶子里没有发现匹配的时候，直接返回它自己的value
     return hwc->value;
 }
 
@@ -253,6 +258,7 @@ ngx_hash_find_combined(ngx_hash_combined_t *hash, ngx_uint_t key, u_char *name,
 #define NGX_HASH_ELT_SIZE(name)                                               \
     (sizeof(void *) + ngx_align((name)->key.len + 2, sizeof(void *)))
 
+// 总的来说就是把names里面的内容放到hinit->hash的桶子里面去
 ngx_int_t
 ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts)
 {
@@ -369,7 +375,7 @@ found:
         test[key] = (u_short) (test[key] + NGX_HASH_ELT_SIZE(&names[n]));
     }
 
-    len = 0;
+    len = 0;    // len = bucket 1 size + bucket 2 size + ...
 
     // 获取所有元素需要分配的内存总大小
     // 所有的桶子都会放在一块内存上，并且做了手工内存对齐
@@ -399,6 +405,7 @@ found:
                       ((u_char *) hinit->hash + sizeof(ngx_hash_wildcard_t));
 
     } else {
+        // 否则只需要申请buckets指针数组的内存
         buckets = ngx_pcalloc(hinit->pool, size * sizeof(ngx_hash_elt_t *));
         if (buckets == NULL) {
             ngx_free(test);
@@ -555,7 +562,7 @@ ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names,
                       "wc1: \"%V\" %ui", &name->key, dot);
 #endif
 
-        // 把"."后面的元素存到next_names数组里面去
+        // 把"."后面的子串存到next_names数组里面去
         dot_len = len + 1;
 
         if (dot) {
@@ -616,11 +623,14 @@ ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names,
 #endif
         }
 
+        // 递归处理next_names，针对这样的结构"a.b.c"
         if (next_names.nelts) {
 
-            h = *hinit;
+            // 在下一层递归的时候，需要新分配一块内存
+            h = *hinit;         // 复制ngx_hash_init_t
             h.hash = NULL;
 
+            // 递归建立当前字段的所有后缀字段组成的hash
             if (ngx_hash_wildcard_init(&h, (ngx_hash_key_t *) next_names.elts,
                                        next_names.nelts)
                 != NGX_OK)
@@ -630,10 +640,14 @@ ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names,
 
             wdc = (ngx_hash_wildcard_t *) h.hash;
 
+            // 判断n位置的key是否有"."后面的子串, 相等即没有
             if (names[n].key.len == len) {
                 wdc->value = names[n].value;
             }
 
+            // 如何标记一个键值对<key,value>中的value是指实际的value，还是指向下一级的hash地址，
+            // 这是上面代码实现的一个巧妙的地方，由于每个hash表的地址或者实际的value都是以4字节对齐的，
+            // 所以这些地址的低2位都是0，这样通过这两位的标记可以很好的解决这个问题。
             name->value = (void *) ((uintptr_t) wdc | (dot ? 3 : 2));
 
         } else if (dot) {
@@ -777,6 +791,7 @@ ngx_hash_add_key(ngx_hash_keys_arrays_t *ha, ngx_str_t *key, void *value,
 
         n = 0;
 
+        // 字符串合法性校验
         for (i = 0; i < key->len; i++) {
 
             if (key->data[i] == '*') {
@@ -794,18 +809,20 @@ ngx_hash_add_key(ngx_hash_keys_arrays_t *ha, ngx_str_t *key, void *value,
             }
         }
 
+        // 第一个字符是"."
         if (key->len > 1 && key->data[0] == '.') {
             skip = 1;
             goto wildcard;
         }
 
         if (key->len > 2) {
-
+            // "*."
             if (key->data[0] == '*' && key->data[1] == '.') {
                 skip = 2;
                 goto wildcard;
             }
 
+            // ".*"
             if (key->data[i - 2] == '.' && key->data[i - 1] == '*') {
                 skip = 0;
                 last -= 2;
@@ -847,6 +864,7 @@ ngx_hash_add_key(ngx_hash_keys_arrays_t *ha, ngx_str_t *key, void *value,
         }
 
     } else {
+        // 没有碰撞则分配指针数组内存
         if (ngx_array_init(&ha->keys_hash[k], ha->temp_pool, 4,
                            sizeof(ngx_str_t))
             != NGX_OK)
@@ -855,18 +873,20 @@ ngx_hash_add_key(ngx_hash_keys_arrays_t *ha, ngx_str_t *key, void *value,
         }
     }
 
+    // ngx_array_t插入一个元素
     name = ngx_array_push(&ha->keys_hash[k]);
     if (name == NULL) {
         return NGX_ERROR;
     }
-
+    // 存放key
     *name = *key;
 
+    // ha->keys插入一个元素
     hk = ngx_array_push(&ha->keys);
     if (hk == NULL) {
         return NGX_ERROR;
     }
-
+    // 填上key,value
     hk->key = *key;
     hk->key_hash = ngx_hash_key(key->data, last);
     hk->value = value;
@@ -875,7 +895,7 @@ ngx_hash_add_key(ngx_hash_keys_arrays_t *ha, ngx_str_t *key, void *value,
 
 
 wildcard:
-
+    // 处理有通配符的情况
     /* wildcard hash */
 
     k = ngx_hash_strlow(&key->data[skip], &key->data[skip], last - skip);

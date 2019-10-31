@@ -68,7 +68,7 @@ ngx_cpuid(uint32_t i, uint32_t *buf)
 
 
 /* auto detect the L2 cache line size of modern and widespread CPUs */
-
+// cpu从内存load数据一次一个cache line，往内存write数据也是一次一个cache line.
 void
 ngx_cpuinfo(void)
 {

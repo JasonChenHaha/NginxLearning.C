@@ -41,7 +41,7 @@ ngx_strerror(ngx_err_t err, u_char *errstr, size_t size)
     return ngx_cpymem(errstr, msg->data, size);
 }
 
-
+// 把错误描述全部遍历缓存起来,以便后续调用
 ngx_int_t
 ngx_strerror_init(void)
 {
