@@ -130,7 +130,7 @@ ngx_clone_listening(ngx_cycle_t *cycle, ngx_listening_t *ls)
     return NGX_OK;
 }
 
-
+// 把cycle的旧连接的属性复制保存下来
 ngx_int_t
 ngx_set_inherited_sockets(ngx_cycle_t *cycle)
 {

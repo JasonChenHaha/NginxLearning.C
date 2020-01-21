@@ -50,7 +50,7 @@ struct ngx_cycle_s {
     ngx_uint_t                free_connection_n;    // 空闲连接数
 
     ngx_module_t            **modules;              // 模块数组
-    ngx_uint_t                modules_n;            // 模块数组数
+    ngx_uint_t                modules_n;            // 模块数
     ngx_uint_t                modules_used;    /* unsigned  modules_used:1; */
 
     ngx_queue_t               reusable_connections_queue;
@@ -77,8 +77,8 @@ struct ngx_cycle_s {
 
     ngx_str_t                 conf_file;            // 配置文件
     ngx_str_t                 conf_param;           // 配置参数
-    ngx_str_t                 conf_prefix;
-    ngx_str_t                 prefix;
+    ngx_str_t                 conf_prefix;          // 配置文件路径前缀
+    ngx_str_t                 prefix;               // 配置文件路径前缀
     ngx_str_t                 lock_file;            // 锁文件
     ngx_str_t                 hostname;
 };

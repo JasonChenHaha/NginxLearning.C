@@ -436,7 +436,7 @@ extern ngx_os_io_t  ngx_io;
 #define NGX_EVENT_MODULE      0x544E5645  /* "EVNT" */
 #define NGX_EVENT_CONF        0x02000000
 
-
+// event事件模块配置的结构对象
 typedef struct {
     ngx_uint_t    connections;
     ngx_uint_t    use;

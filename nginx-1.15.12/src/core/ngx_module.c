@@ -22,6 +22,7 @@ ngx_uint_t         ngx_max_module;
 static ngx_uint_t  ngx_modules_n;
 
 
+// 对模块数组初始化编号和名字
 ngx_int_t
 ngx_preinit_modules(void)
 {
@@ -78,7 +79,8 @@ ngx_init_modules(ngx_cycle_t *cycle)
     return NGX_OK;
 }
 
-
+// 统计指定类型下面有多少个模块，
+// 同时将未设置ctz_index的分配一个顺序的序号
 ngx_int_t
 ngx_count_modules(ngx_cycle_t *cycle, ngx_uint_t type)
 {
@@ -314,7 +316,7 @@ again:
     return index;
 }
 
-
+// 找到一个未使用的ctx_index
 static ngx_uint_t
 ngx_module_ctx_index(ngx_cycle_t *cycle, ngx_uint_t type, ngx_uint_t index)
 {

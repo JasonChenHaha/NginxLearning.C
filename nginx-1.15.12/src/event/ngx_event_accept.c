@@ -314,10 +314,11 @@ ngx_event_accept(ngx_event_t *ev)
     } while (ev->available);
 }
 
-
+// 获取accept锁
 ngx_int_t
 ngx_trylock_accept_mutex(ngx_cycle_t *cycle)
 {
+    // 拿锁
     if (ngx_shmtx_trylock(&ngx_accept_mutex)) {
 
         ngx_log_debug0(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
@@ -327,6 +328,7 @@ ngx_trylock_accept_mutex(ngx_cycle_t *cycle)
             return NGX_OK;
         }
 
+        // 开启监听accept事件
         if (ngx_enable_accept_events(cycle) == NGX_ERROR) {
             ngx_shmtx_unlock(&ngx_accept_mutex);
             return NGX_ERROR;
@@ -342,6 +344,7 @@ ngx_trylock_accept_mutex(ngx_cycle_t *cycle)
                    "accept mutex lock failed: %ui", ngx_accept_mutex_held);
 
     if (ngx_accept_mutex_held) {
+        // 删除accept事件
         if (ngx_disable_accept_events(cycle, 0) == NGX_ERROR) {
             return NGX_ERROR;
         }
@@ -352,7 +355,8 @@ ngx_trylock_accept_mutex(ngx_cycle_t *cycle)
     return NGX_OK;
 }
 
-
+// 开启accept事件的监听
+// 并将其加入到event上
 ngx_int_t
 ngx_enable_accept_events(ngx_cycle_t *cycle)
 {
@@ -377,7 +381,8 @@ ngx_enable_accept_events(ngx_cycle_t *cycle)
     return NGX_OK;
 }
 
-
+// 关闭accept事件的监听
+// 并将其从event上删除
 static ngx_int_t
 ngx_disable_accept_events(ngx_cycle_t *cycle, ngx_uint_t all)
 {
@@ -390,6 +395,7 @@ ngx_disable_accept_events(ngx_cycle_t *cycle, ngx_uint_t all)
 
         c = ls[i].connection;
 
+        // 如果c->read->active，则表示是活跃的连接，已经被使用中
         if (c == NULL || !c->read->active) {
             continue;
         }

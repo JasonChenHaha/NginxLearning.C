@@ -55,6 +55,8 @@ ngx_strerror_init(void)
      * malloc() is used and possible errors are logged using strerror().
      */
 
+    // 宏NGX_SYS_NERR的意义为，在Linux系统中有132个错误编码。
+    // 在./configure之后生成
     len = NGX_SYS_NERR * sizeof(ngx_str_t);
 
     ngx_sys_errlist = malloc(len);

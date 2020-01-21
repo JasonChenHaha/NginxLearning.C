@@ -1,4 +1,4 @@
-
+// nginx slab 分配器用于管理和分配小于一页的内存申请，但实际上大于一页的内存分配也是统一实现的
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.

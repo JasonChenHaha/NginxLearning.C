@@ -155,14 +155,16 @@ static ngx_command_t  ngx_core_commands[] = {
       ngx_null_command
 };
 
-
+// 核心模块配置文件
+// ngx_core_module_create_conf 核心模块创建配置文件
+// ngx_core_module_init_conf 核心模块初始化配置文件
 static ngx_core_module_t  ngx_core_module_ctx = {
     ngx_string("core"),
     ngx_core_module_create_conf,
     ngx_core_module_init_conf
 };
 
-
+// 核心模块
 ngx_module_t  ngx_core_module = {
     NGX_MODULE_V1,
     &ngx_core_module_ctx,                  /* module context */
@@ -203,6 +205,7 @@ main(int argc, char *const *argv)
 
     ngx_debug_init();
 
+    // 缓存系统错误描述
     if (ngx_strerror_init() != NGX_OK) {
         return 1;
     }
@@ -233,6 +236,7 @@ main(int argc, char *const *argv)
     ngx_pid = ngx_getpid();
     ngx_parent = ngx_getppid();
 
+    // 根据./configure初始化并打开日志文件
     log = ngx_log_init(ngx_prefix);
     if (log == NULL) {
         return 1;
@@ -263,7 +267,7 @@ main(int argc, char *const *argv)
         return 1;
     }
 
-    // 调用ngx_process_options方法，将ngx_get_options中获得这些参数取值赋值到ngx_cycle中。prefix, conf_prefix, conf_file, conf_param等字段。
+    // 调用ngx_process_options方法，将上面调用的ngx_get_options中获得这些参数取值赋值到ngx_cycle中。prefix, conf_prefix, conf_file, conf_param等字段。
     if (ngx_process_options(&init_cycle) != NGX_OK) {
         return 1;
     }
@@ -277,7 +281,6 @@ main(int argc, char *const *argv)
      * ngx_crc32_table_init() requires ngx_cacheline_size set in ngx_os_init()
      */
 
-    // 初始化一致性hash表，主要作用是加快查询
     if (ngx_crc32_table_init() != NGX_OK) {
         return 1;
     }
@@ -293,6 +296,7 @@ main(int argc, char *const *argv)
       初始化socket端口监听，例如打开80端口监听
       nginx支持热切换，为了保证切换之后的套接字不丢失
       所以需要采用这一步添加集成的socket套接字，套接字会放在nginx的全局环境变量中
+      就是把旧的socket继承过来，不需要重新创建
     */
     if (ngx_add_inherited_sockets(&init_cycle) != NGX_OK) {
         return 1;
@@ -362,6 +366,7 @@ main(int argc, char *const *argv)
         return 1;
     }
 
+    // 创建守护进程
     if (!ngx_inherited && ccf->daemon) {
         if (ngx_daemon(cycle->log) != NGX_OK) {
             return 1;
@@ -381,6 +386,7 @@ main(int argc, char *const *argv)
         return 1;
     }
 
+    // 把标准错误fd指向cycle下的日志文件fd指向的文件表项
     if (ngx_log_redirect_stderr(cycle) != NGX_OK) {
         return 1;
     }
@@ -394,10 +400,12 @@ main(int argc, char *const *argv)
 
     ngx_use_stderr = 0;
 
+    // 这函数里面开始真正创建多个Nginx的子进程。这个方法包括子进程创建、事件监听、各种模块运行等都会包含进去
     if (ngx_process == NGX_PROCESS_SINGLE) {
+        // 根据conf配置只创建单个进程
         ngx_single_process_cycle(cycle);
     } else {
-        // 这函数里面开始真正创建多个Nginx的子进程。这个方法包括子进程创建、事件监听、各种模块运行等都会包含进去
+        // master-worker
         ngx_master_process_cycle(cycle);
     }
 
@@ -532,7 +540,7 @@ ngx_add_inherited_sockets(ngx_cycle_t *cycle)
     return ngx_set_inherited_sockets(cycle);
 }
 
-
+// 设置环境变量
 char **
 ngx_set_environment(ngx_cycle_t *cycle, ngx_uint_t *last)
 {
@@ -542,6 +550,7 @@ ngx_set_environment(ngx_cycle_t *cycle, ngx_uint_t *last)
     ngx_core_conf_t      *ccf;
     ngx_pool_cleanup_t   *cln;
 
+    // 获得core模块配置
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
     if (last == NULL && ccf->environment) {
@@ -933,7 +942,7 @@ ngx_save_argv(ngx_cycle_t *cycle, int argc, char *const *argv)
     return NGX_OK;
 }
 
-
+// 将启动参数保存到cycle结构中
 static ngx_int_t
 ngx_process_options(ngx_cycle_t *cycle)
 {
@@ -968,6 +977,7 @@ ngx_process_options(ngx_cycle_t *cycle)
             return NGX_ERROR;
         }
 
+        // 获得当前程序所在路径
         if (ngx_getcwd(p, NGX_MAX_PATH) == 0) {
             ngx_log_stderr(ngx_errno, "[emerg]: " ngx_getcwd_n " failed");
             return NGX_ERROR;
@@ -1074,7 +1084,7 @@ ngx_core_module_create_conf(ngx_cycle_t *cycle)
     return ccf;
 }
 
-
+// 模块配置初始化
 static char *
 ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
 {

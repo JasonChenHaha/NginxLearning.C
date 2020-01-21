@@ -101,7 +101,7 @@ uint32_t  ngx_crc32_table256[] = {
 
 uint32_t *ngx_crc32_table_short = ngx_crc32_table16;
 
-
+// 初始化crc32相关变量，主要是利用查表法加速
 ngx_int_t
 ngx_crc32_table_init(void)
 {

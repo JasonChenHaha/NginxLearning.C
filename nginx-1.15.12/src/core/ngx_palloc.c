@@ -37,6 +37,7 @@ ngx_create_pool(size_t size, ngx_log_t *log)
     p->d.failed = 0;
 
     size = size - sizeof(ngx_pool_t);
+    // 限定内存池的大小不能超过内存页大小
     p->max = (size < NGX_MAX_ALLOC_FROM_POOL) ? size : NGX_MAX_ALLOC_FROM_POOL;
 
     /* 只有缓存池的父节点，才会用到下面的这些  ，子节点只挂载在p->d.next,并且只负责p->d的数据内容*/
