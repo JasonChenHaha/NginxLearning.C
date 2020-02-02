@@ -288,8 +288,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
      * 2. 当没有拿到锁，则处理的全部是read事件，直接进行回调函数处理
      * 参数：timer-epoll_wait超时时间  (ngx_accept_mutex_delay-延迟拿锁事件   NGX_TIMER_INFINITE-正常的epollwait等待事件)
      */
-    // ngx_process_events是宏
-    // ngx_event_actions.process_events
+    // ngx_process_events是宏 ngx_event_actions.process_events
     // ngx_event_actions结构体是在ngx_process_cycle的init_process指向的
     // ngx_event_process_init内赋值的
     (void) ngx_process_events(cycle, timer, flags);
@@ -303,6 +302,12 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
      * 1. ngx_posted_accept_events是一个事件队列，暂存epoll从监听套接口wait到的accept事件
      * 2. 这个方法是循环处理accpet事件列队上的accpet事件
      */
+
+    // 对于事件的处理，如果是accept事件，则将其交由ngx_event_accept.c的ngx_event_accept()方法处理；
+    // 如果是读事件，则将其交由ngx_http_request.c的ngx_http_wait_request_handler()方法处理；
+    // 对于处理完成的事件，最后会交由ngx_http_request.c的ngx_http_keepalive_handler()方法处理。
+
+    // 这里开始处理除accept事件外的其他事件
     ngx_event_process_posted(cycle, &ngx_posted_accept_events);
 
     // 如果拿到锁，处理完accept事件之后，释放
@@ -316,7 +321,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
 
     /**
      *1. 普通事件都会存放在ngx_posted_events队列上
-     *2. 这个方法是循环处理read事件列队上的read事件
+     *2. 这个方法处理普通事件队列
      */
     ngx_event_process_posted(cycle, &ngx_posted_events);
 }
@@ -678,7 +683,9 @@ ngx_event_process_init(ngx_cycle_t *cycle)
     ngx_event_conf_t    *ecf;
     ngx_event_module_t  *module;
 
+    // 获取核心模块配置
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
+    // 获取核心事件模块配置
     ecf = ngx_event_get_conf(cycle->conf_ctx, ngx_event_core_module);
 
     if (ccf->master && ccf->worker_processes > 1 && ecf->accept_mutex) {
@@ -701,6 +708,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
 #endif
 
+    // 初始化事件队列
     ngx_queue_init(&ngx_posted_accept_events);
     ngx_queue_init(&ngx_posted_events);
 
@@ -708,6 +716,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
+    // 遍历初始化模块
     for (m = 0; cycle->modules[m]; m++) {
         if (cycle->modules[m]->type != NGX_EVENT_MODULE) {
             continue;
@@ -729,6 +738,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
 #if !(NGX_WIN32)
 
+    // 利用信号作定时器
     if (ngx_timer_resolution && !(ngx_event_flags & NGX_USE_TIMER_EVENT)) {
         struct sigaction  sa;
         struct itimerval  itv;
@@ -754,6 +764,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         }
     }
 
+    // 根据系统最大打开文件描述符数来初始化指定变量
     if (ngx_event_flags & NGX_USE_FD_EVENT) {
         struct rlimit  rlmt;
 
@@ -773,7 +784,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
     }
 
 #else
-
+    // 定时器精度
     if (ngx_timer_resolution && !(ngx_event_flags & NGX_USE_TIMER_EVENT)) {
         ngx_log_error(NGX_LOG_WARN, cycle->log, 0,
                       "the \"timer_resolution\" directive is not supported "
@@ -783,6 +794,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
 #endif
 
+    // 初始化连接数组
     cycle->connections =
         ngx_alloc(sizeof(ngx_connection_t) * cycle->connection_n, cycle->log);
     if (cycle->connections == NULL) {
@@ -821,6 +833,8 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         i--;
 
         c[i].data = next;
+        // 初始化所有空闲连接的读写回调函数
+        // 需要注意的是此时数组还没有被赋值
         c[i].read = &cycle->read_events[i];
         c[i].write = &cycle->write_events[i];
         c[i].fd = (ngx_socket_t) -1;
@@ -888,6 +902,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         if (ngx_event_flags & NGX_USE_IOCP_EVENT) {
             ngx_iocp_conf_t  *iocpcf;
 
+            // 指定连接事件回调
             rev->handler = ngx_event_acceptex;
 
             if (ngx_use_accept_mutex) {
@@ -908,6 +923,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
             }
 
         } else {
+            // 指定连接事件回调
             rev->handler = ngx_event_accept;
 
             if (ngx_use_accept_mutex) {
@@ -920,7 +936,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         }
 
 #else
-
+        // 指定连接事件回调
         rev->handler = (c->type == SOCK_STREAM) ? ngx_event_accept
                                                 : ngx_event_recvmsg;
 

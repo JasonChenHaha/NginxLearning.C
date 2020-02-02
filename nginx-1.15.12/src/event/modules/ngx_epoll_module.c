@@ -881,6 +881,7 @@ ngx_epoll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags)
         }
 #endif
 
+        // 处理读或者连接事件
         if ((revents & EPOLLIN) && rev->active) {
 
 #if (NGX_HAVE_EPOLLRDHUP)
@@ -893,19 +894,22 @@ ngx_epoll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags)
 
             rev->ready = 1;
 
+            // 如果有NGX_POST_EVENTS，把连接和读事件分开插入队列
+            // 延后处理
             if (flags & NGX_POST_EVENTS) {
                 queue = rev->accept ? &ngx_posted_accept_events
                                     : &ngx_posted_events;
 
                 ngx_post_event(rev, queue);
 
-            } else {
+            } else {    // 否则直接处理
                 rev->handler(rev);
             }
         }
 
         wev = c->write;
 
+        // 处理写事件
         if ((revents & EPOLLOUT) && wev->active) {
 
             if (c->fd == -1 || wev->instance != instance) {

@@ -13,7 +13,7 @@
 static ngx_int_t ngx_disable_accept_events(ngx_cycle_t *cycle, ngx_uint_t all);
 static void ngx_close_accepted_connection(ngx_connection_t *c);
 
-
+// 连接事件回调
 void
 ngx_event_accept(ngx_event_t *ev)
 {
@@ -296,6 +296,7 @@ ngx_event_accept(ngx_event_t *ev)
 #endif
 
         if (ngx_add_conn && (ngx_event_flags & NGX_USE_EPOLL_EVENT) == 0) {
+            // 把新建的连接加到epoll
             if (ngx_add_conn(c) == NGX_ERROR) {
                 ngx_close_accepted_connection(c);
                 return;
@@ -305,6 +306,9 @@ ngx_event_accept(ngx_event_t *ev)
         log->data = NULL;
         log->handler = NULL;
 
+        // 在ngx_http的ngx_http_add_listening中
+        // 将handler设置为ngx_http_init_connection
+        // 该函数内部设置了该连接的read事件回调函数
         ls->handler(c);
 
         if (ngx_event_flags & NGX_USE_KQUEUE_EVENT) {

@@ -202,7 +202,7 @@ ngx_http_header_t  ngx_http_headers_in[] = {
     { ngx_null_string, 0, NULL }
 };
 
-
+// http模块连接初始化
 void
 ngx_http_init_connection(ngx_connection_t *c)
 {

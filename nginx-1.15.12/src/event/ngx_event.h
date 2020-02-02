@@ -26,7 +26,7 @@ typedef struct {
 
 #endif
 
-
+// 事件结构体
 struct ngx_event_s {
     void            *data;
 

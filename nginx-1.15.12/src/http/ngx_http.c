@@ -115,7 +115,7 @@ ngx_module_t  ngx_http_module = {
     NGX_MODULE_V1_PADDING
 };
 
-
+// http模块初始化
 static char *
 ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -1710,6 +1710,7 @@ ngx_http_add_listening(ngx_conf_t *cf, ngx_http_conf_addr_t *addr)
 
     ls->addr_ntop = 1;
 
+    // 设置监听fd的回调函数
     ls->handler = ngx_http_init_connection;
 
     cscf = addr->default_server;
