@@ -189,7 +189,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
     ngx_memzero(cycle->listening.elts, n * sizeof(ngx_listening_t));
 
-    // 初始化可服用连接队列
+    // 初始化可复用连接队列
     ngx_queue_init(&cycle->reusable_connections_queue);
 
     // 初始化上下文配置

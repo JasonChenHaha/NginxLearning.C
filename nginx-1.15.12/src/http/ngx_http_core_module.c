@@ -798,7 +798,7 @@ ngx_module_t  ngx_http_core_module = {
 
 ngx_str_t  ngx_http_core_get_method = { 3, (u_char *) "GET" };
 
-
+// http处理分发核心函数
 void
 ngx_http_handler(ngx_http_request_t *r)
 {
@@ -841,7 +841,12 @@ ngx_http_handler(ngx_http_request_t *r)
     ngx_http_core_run_phases(r);
 }
 
-
+// 11个阶段处理http请求
+// 阶段处理返回的几个状态含义：
+// NGX_OK:    表示该阶段已经处理完成，需要转入下一个阶段；
+// NGX_DECLINED:    表示需要转入本阶段的下一个handler继续处理；
+// NGX_AGAIN, NGX_DONE:表示需要等待某个事件发生才能继续处理（比如等待网络IO），此时Nginx为了不阻塞其他请求的处理，必须中断当前请求的执行链，等待事件发生之后继续执行该handler；
+// NGX_ERROR:    表示发生了错误，需要结束该请求
 void
 ngx_http_core_run_phases(ngx_http_request_t *r)
 {
@@ -853,6 +858,7 @@ ngx_http_core_run_phases(ngx_http_request_t *r)
 
     ph = cmcf->phase_engine.handlers;
 
+    /* 遍历解析和处理各个阶段的HTTP请求 如果返回rc==NGX_AGAIN 则交由下一个阶段处理；返回OK则返回结果  */
     while (ph[r->phase_handler].checker) {
 
         rc = ph[r->phase_handler].checker(r, &ph[r->phase_handler]);
@@ -863,7 +869,7 @@ ngx_http_core_run_phases(ngx_http_request_t *r)
     }
 }
 
-
+// 内容接收阶段
 ngx_int_t
 ngx_http_core_generic_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 {
@@ -880,6 +886,7 @@ ngx_http_core_generic_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
     rc = ph->handler(r);
 
     if (rc == NGX_OK) {
+        // 本阶段处理完，跳到下一个阶段处理
         r->phase_handler = ph->next;
         return NGX_AGAIN;
     }
