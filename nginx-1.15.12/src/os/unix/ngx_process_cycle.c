@@ -85,7 +85,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
     ngx_listening_t   *ls;
     ngx_core_conf_t   *ccf;
 
-    // 信号处理
+    // 信号屏蔽处理
     sigemptyset(&set);
     sigaddset(&set, SIGCHLD);
     sigaddset(&set, SIGALRM);
@@ -142,7 +142,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
 
     // 主线程循环
     for ( ;; ) {
-        /* delay用来设置等待worker推出的时间，master接受了退出信号后，
+        /* delay用来设置等待worker退出的时间，master接受了退出信号后，
          * 首先发送退出信号给worker，而worker退出需要一些时间*/
         if (delay) {
             if (ngx_sigalrm) {
@@ -167,7 +167,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
 
         ngx_log_debug0(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "sigsuspend");
 
-        // 等待信号的到来，阻塞函数
+        // 等待set内的信号的到来，阻塞函数
         sigsuspend(&set);
 
         ngx_time_update();
@@ -183,6 +183,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
             live = ngx_reap_children(cycle);
         }
 
+        // 主进程终止
         if (!live && (ngx_terminate || ngx_quit)) {
             ngx_master_process_exit(cycle);
         }
