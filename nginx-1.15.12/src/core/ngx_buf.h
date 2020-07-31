@@ -17,6 +17,7 @@ typedef void *            ngx_buf_tag_t;
 
 typedef struct ngx_buf_s  ngx_buf_t;
 
+// ngx处理大数据的关键数据结构
 struct ngx_buf_s {
     u_char          *pos;               // 待处理数据的开始标记
     u_char          *last;              // 待处理数据的结尾标记
@@ -27,7 +28,7 @@ struct ngx_buf_s {
     u_char          *end;               /* end of buffer */
     ngx_buf_tag_t    tag;
     ngx_file_t      *file;              // 引用的文件
-    ngx_buf_t       *shadow;
+    ngx_buf_t       *shadow;            // 当前缓冲区的影子缓冲区，很少用到
 
 
     /* the buf's content could be changed */
@@ -47,6 +48,7 @@ struct ngx_buf_s {
     unsigned         flush:1;           // 是否需要进行flush操作
     unsigned         sync:1;            // 是否可以进行同步操作
     unsigned         last_buf:1;        // 是否为缓冲区链表ngx_chain_t上的最后一块待处理缓冲区
+                                        // 因为ngx_buf_s可以由ngx_chain_t链表串起来
     unsigned         last_in_chain:1;   // 是否为缓冲区链表ngx_chain_t上的最后一块缓冲区
 
     unsigned         last_shadow:1;     // 是否是最后一个影子缓冲区

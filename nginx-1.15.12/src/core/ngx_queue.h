@@ -1,4 +1,4 @@
-
+// 双向循环链表
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -29,7 +29,7 @@ struct ngx_queue_s {
 #define ngx_queue_empty(h)                                                    \
     (h == (h)->prev)
 
-// h - x - next_h
+// h - next -> h - x - next
 #define ngx_queue_insert_head(h, x)                                           \
     (x)->next = (h)->next;                                                    \
     (x)->next->prev = x;                                                      \
@@ -39,7 +39,7 @@ struct ngx_queue_s {
 
 #define ngx_queue_insert_after   ngx_queue_insert_head
 
-// prev_h - x - h
+// prev - h -> prev - x - h
 #define ngx_queue_insert_tail(h, x)                                           \
     (x)->prev = (h)->prev;                                                    \
     (x)->prev->next = x;                                                      \
@@ -54,7 +54,7 @@ struct ngx_queue_s {
 #define ngx_queue_last(h)                                                     \
     (h)->prev
 
-
+// 哨兵
 #define ngx_queue_sentinel(h)                                                 \
     (h)
 
@@ -83,8 +83,7 @@ struct ngx_queue_s {
 
 #endif
 
-// prev_h - n - q
-// prev_q - h
+// 把h链表在q节点前面截断, 用新的n节点作为头结点接手后半段
 #define ngx_queue_split(h, q, n)                                              \
     (n)->prev = (h)->prev;                                                    \
     (n)->prev->next = n;                                                      \
@@ -93,8 +92,7 @@ struct ngx_queue_s {
     (h)->prev->next = h;                                                      \
     (q)->prev = n;
 
-// prev_h - next_n
-// prev_n - h
+// 把n节点管理的链拼接到h链尾部, n节点本身不加入链循环中
 #define ngx_queue_add(h, n)                                                   \
     (h)->prev->next = (n)->next;                                              \
     (n)->next->prev = (h)->prev;                                              \
@@ -102,11 +100,16 @@ struct ngx_queue_s {
     (h)->prev->next = h;
 
 
+// 返回q节点所属的结构体
+// q节点被包含在另一个大结构体中,现在要获取大结构体的首地址,需要用减法偏移
 #define ngx_queue_data(q, type, link)                                         \
     (type *) ((u_char *) q - offsetof(type, link))
 
-
+// 返回链表的中间位置的节点
 ngx_queue_t *ngx_queue_middle(ngx_queue_t *queue);
+
+// 使用插入排序对链表进行排序,
+// 需要提供比较函数cmp
 void ngx_queue_sort(ngx_queue_t *queue,
     ngx_int_t (*cmp)(const ngx_queue_t *, const ngx_queue_t *));
 

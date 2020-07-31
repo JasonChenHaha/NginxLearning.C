@@ -33,8 +33,10 @@ ngx_list_push(ngx_list_t *l)
     void             *elt;
     ngx_list_part_t  *last;
 
+    // 得到最后一个节点(前面的节点已经满了)
     last = l->last;
 
+    // 判断元素数量是否已满
     if (last->nelts == l->nalloc) {
 
         /* the last part is full, allocate a new list part */

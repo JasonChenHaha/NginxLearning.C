@@ -15,7 +15,7 @@
 
 typedef struct {
     void        *elts;          // 指向数组第一个元素指针
-    ngx_uint_t   nelts;         // 未使用元素的索引
+    ngx_uint_t   nelts;         // 已使用元素数量
     size_t       size;          // 每个元素的大小，元素大小固定
     ngx_uint_t   nalloc;        // 申请的元素数量，如果不够用，nginx数组会自动扩容
     ngx_pool_t  *pool;          // 内存池

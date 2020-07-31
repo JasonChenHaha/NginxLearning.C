@@ -75,12 +75,12 @@
 
 
 struct ngx_command_s {
-    ngx_str_t             name;
-    ngx_uint_t            type;
-    char               *(*set)(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-    ngx_uint_t            conf;
-    ngx_uint_t            offset;
-    void                 *post;
+    ngx_str_t             name; // 名称
+    ngx_uint_t            type; // 类型
+    char               *(*set)(ngx_conf_t *cf, ngx_command_t *cmd, void *conf); // 处理配置项参数的方法
+    ngx_uint_t            conf; // 在配置文件中的偏移量
+    ngx_uint_t            offset;  // 指定该配置项值的精确存放位置
+    void                 *post; // 配置项处理后的回调方法，在大多数情况下为NULL
 };
 
 #define ngx_null_command  { ngx_null_string, 0, NULL, 0, 0, NULL }
