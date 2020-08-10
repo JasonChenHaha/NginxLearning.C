@@ -25,7 +25,7 @@ struct ngx_listening_s {
 
     int                 type;
 
-    int                 backlog;
+    int                 backlog;    // 连接后背队列,已经通过握手还没有被处理的连接数
     int                 rcvbuf;
     int                 sndbuf;
 #if (NGX_HAVE_KEEPALIVE_TUNABLE)
@@ -38,15 +38,19 @@ struct ngx_listening_s {
     ngx_connection_handler_pt   handler;
 
     void               *servers;  /* array of ngx_http_in_addr_t, for example */
+                                    // 实际上框架并不使用servers指针，目前主要是用于http或者mail等模块
+                                    // 用于保存当前监听端口对应着的所有主机名
 
     ngx_log_t           log;
     ngx_log_t          *logp;
 
     size_t              pool_size;
     /* should be here because of the AcceptEx() preread */
-    size_t              post_accept_buffer_size;
+    size_t              post_accept_buffer_size;    // 全局搜索只有一处被赋值为client_header_buffer_size
     /* should be here because of the deferred accept */
-    ngx_msec_t          post_accept_timeout;
+    ngx_msec_t          post_accept_timeout;        // TCP_DEFER_ACCEPT选项将在建立TCP连接成功且收到用户的请求数据后，
+                                                    // 才向监听套接字感兴趣的进程发送事件通知，而连接建立成功后，如果
+                                                    // post_accept_timeout秒后仍然没有收到数据，则内核直接丢弃连接
 
     ngx_listening_t    *previous;
     ngx_connection_t   *connection;
@@ -56,17 +60,23 @@ struct ngx_listening_s {
 
     ngx_uint_t          worker;
 
-    unsigned            open:1;
-    unsigned            remain:1;
-    unsigned            ignore:1;
+    unsigned            open:1;                     // 为1表示在当前监听句柄有效，且执行ngx_init_cycle时不关闭
+                                                    // 监听端口, 为0时正常关闭，框架代码会自动设置
+
+    unsigned            remain:1;                   // 为1表示使用已有的ngx_cycle_t来初始化新的ngx_cycle_t，不关闭
+                                                    // 原先打开的监听端口，这对运行中升级程序很有用，为0时表示正常关闭
+                                                    // 曾经打开的监听端口，框架代码会自动设置
+
+    unsigned            ignore:1;                   // 为1表示跳过设置当前ngx_listening_t结构体中的套接字，为0时正常
+                                                    // 初始化套接字，框架代码会自动设置
 
     unsigned            bound:1;       /* already bound */
     unsigned            inherited:1;   /* inherited from previous process */
     unsigned            nonblocking_accept:1;
-    unsigned            listen:1;
+    unsigned            listen:1;                   // 表示当前结构体对应的套接字是否已经监听
     unsigned            nonblocking:1;
     unsigned            shared:1;    /* shared between threads or processes */
-    unsigned            addr_ntop:1;
+    unsigned            addr_ntop:1;                // 是否将网络地址从numeric到presentation
     unsigned            wildcard:1;
 
 #if (NGX_HAVE_INET6)

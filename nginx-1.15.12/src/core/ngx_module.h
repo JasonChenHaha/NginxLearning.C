@@ -275,6 +275,7 @@ typedef struct {
 
 
 ngx_int_t ngx_preinit_modules(void);
+// 把ngx_modules拷贝到cycle结构体中
 ngx_int_t ngx_cycle_modules(ngx_cycle_t *cycle);
 ngx_int_t ngx_init_modules(ngx_cycle_t *cycle);
 // 统计指定类型下面有多少modules

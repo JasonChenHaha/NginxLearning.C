@@ -64,6 +64,7 @@ ngx_hash_find_wc_head(ngx_hash_wildcard_t *hwc, u_char *name, size_t len)
     n = len;
 
     // 查找name字符串中最后一个"."的位置
+    // *.example.com
     while (n) {
         if (name[n - 1] == '.') {
             break;
@@ -106,14 +107,15 @@ ngx_hash_find_wc_head(ngx_hash_wildcard_t *hwc, u_char *name, size_t len)
         if ((uintptr_t) value & 2) {
 
             if (n == 0) {
-
+                // name不带通配符
                 /* "example.com" */
 
                 if ((uintptr_t) value & 1) {
+                    // 类型错误
                     return NULL;
                 }
 
-                // 去掉尾部的2个字节
+                // 清0尾部两位标志位得到链接下一个hash表指针
                 hwc = (ngx_hash_wildcard_t *)
                                           ((uintptr_t) value & (uintptr_t) ~3);
                 return hwc->value;
@@ -121,6 +123,7 @@ ngx_hash_find_wc_head(ngx_hash_wildcard_t *hwc, u_char *name, size_t len)
 
             hwc = (ngx_hash_wildcard_t *) ((uintptr_t) value & (uintptr_t) ~3);
             // 递归子查询
+            // *.example
             value = ngx_hash_find_wc_head(hwc, name, n - 1);
 
             if (value) {
@@ -133,12 +136,13 @@ ngx_hash_find_wc_head(ngx_hash_wildcard_t *hwc, u_char *name, size_t len)
         if ((uintptr_t) value & 1) {
 
             if (n == 0) {
-
+                // name不带通配符
                 /* "example.com" */
 
                 return NULL;
             }
 
+            // 直接取得存储数据指针
             return (void *) ((uintptr_t) value & (uintptr_t) ~3);
         }
 
@@ -251,7 +255,8 @@ ngx_hash_find_combined(ngx_hash_combined_t *hash, ngx_uint_t key, u_char *name,
     return NULL;
 }
 
-// 计算需要的ngx_hash_elt_t元素大小
+// name是ngx_hash_key_t
+// 计算把name->key转化成ngx_hash_elt_t之后的大小
 // sizeof(void *)是value长度
 // (name)->key.len是key的长度
 // 2是short类型len的长度
@@ -390,9 +395,11 @@ found:
     }
 
     if (hinit->hash == NULL) {
-        // 分配一快内存
+        // 分配一块内存
         // sizeof(ngx_hash_wildcard_t) 存储通配结构
         // size * sizeof(ngx_hash_elt_t *) 存储ngx_hash_t->buckets指针数组
+        // 因为ngx_hash_wildcard_t内存布局是ngx_hash_t + value指针,
+        // 所以这里可以用ngx_hash_t类型的hash变量接收sizeof(ngx_hash_wildcard_t)
         hinit->hash = ngx_pcalloc(hinit->pool, sizeof(ngx_hash_wildcard_t)
                                              + size * sizeof(ngx_hash_elt_t *));
         if (hinit->hash == NULL) {
@@ -424,6 +431,14 @@ found:
     elts = ngx_align_ptr(elts, ngx_cacheline_size);
 
     // 把数组顺序拆分成不同的桶子所需长度，首地址存储到buckets
+    // 内存布局为
+    // buckets                            |elts
+    // *ngx_hash_elt_t|*ngx_hash_elt_t|...|keys|keys|...
+    // |               |                    |    |
+    // +---------------+--------------------+    |
+    //                 |                         |
+    //                 +-------------------------+
+    // ngx_hash_elt_t中的value指向elts内存中将要存储的每个相同hash的keys的首地址
     for (i = 0; i < size; i++) {
         if (test[i] == sizeof(void *)) {
             continue;
@@ -438,29 +453,32 @@ found:
         test[i] = 0;
     }
 
-    // 把key的数据存进hash链表
+    // 把name存进hash链表
     for (n = 0; n < nelts; n++) {
         if (names[n].key.data == NULL) {
             continue;
         }
 
         key = names[n].key_hash % size;
+        // 获得对应的桶子,因为里面存的是ngx_hash_elt_t数组，所以要加一个偏移量
         elt = (ngx_hash_elt_t *) ((u_char *) buckets[key] + test[key]);
 
         elt->value = names[n].value;
         elt->len = (u_short) names[n].key.len;
 
+        // 把小写的name转成小写存起来
         ngx_strlow(elt->name, names[n].key.data, names[n].key.len);
 
+        // 累加偏移量
         test[key] = (u_short) (test[key] + NGX_HASH_ELT_SIZE(&names[n]));
     }
 
-    // 尾部空指针强制转换为ngx_hash_elt_t指针，并设置偏移位置为0的value为NULL.
     for (i = 0; i < size; i++) {
         if (buckets[i] == NULL) {
             continue;
         }
 
+        // 尾部空指针强制转换为ngx_hash_elt_t指针，并设置偏移位置为0的value为NULL.
         elt = (ngx_hash_elt_t *) ((u_char *) buckets[i] + test[i]);
 
         elt->value = NULL;
@@ -795,17 +813,17 @@ ngx_hash_add_key(ngx_hash_keys_arrays_t *ha, ngx_str_t *key, void *value,
         for (i = 0; i < key->len; i++) {
 
             if (key->data[i] == '*') {
-                if (++n > 1) {
+                if (++n > 1) {  // 不能超过一个*
                     return NGX_DECLINED;
                 }
             }
 
             if (key->data[i] == '.' && key->data[i + 1] == '.') {
-                return NGX_DECLINED;
+                return NGX_DECLINED;    // 不能连续两个.
             }
 
             if (key->data[i] == '\0') {
-                return NGX_DECLINED;
+                return NGX_DECLINED;    // 不能有结束符
             }
         }
 
@@ -835,6 +853,7 @@ ngx_hash_add_key(ngx_hash_keys_arrays_t *ha, ngx_str_t *key, void *value,
         }
     }
 
+    // 处理没有通配符的情况
     /* exact hash */
 
     k = 0;
@@ -985,7 +1004,7 @@ wildcard:
     } else {
 
         /* convert "www.example.*" to "www.example\0" */
-
+        // 前面针对这种类型把last-2了,这里再+1存放\0
         last++;
 
         p = ngx_pnalloc(ha->temp_pool, last);

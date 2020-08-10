@@ -28,7 +28,7 @@ typedef struct {
 // 带通配符的hash表的数据结构
 typedef struct {
     ngx_hash_t        hash;     // 基本散列表
-    void             *value;    // 指向真正的value或NULL
+    void             *value;    // 指向用户数据
 } ngx_hash_wildcard_t;
 
 // key结构
@@ -54,8 +54,8 @@ typedef struct {
     ngx_hash_t       *hash;
     ngx_hash_key_pt   key;          // 计算key散列的方法
 
-    ngx_uint_t        max_size;     // 整体最大容量
-    ngx_uint_t        bucket_size;  // 桶的大小
+    ngx_uint_t        max_size;     // 整体最大字节容量
+    ngx_uint_t        bucket_size;  // 桶的字节大小
 
     char             *name;         // hash表名称
     ngx_pool_t       *pool;
@@ -78,7 +78,7 @@ typedef struct {
 // 该函数会自动实现普通key，带前向通配符的key和带后向通配符的key的分类和检查，
 // 并将这个些值存放到对应的字段中去， 然后就可以通过检查这个结构体中的
 // keys、dns_wc_head、dns_wc_tail三个数组是否为空，来决定是否构建普通hash表，
-// 前向通配符hash表和后向通配符hash表了（在构建这三个类型的hash表的时候，
+// 前向通配符hash表和后向通配符hash表（在构建这三个类型的hash表的时候，
 // 可以分别使用keys、dns_wc_head、dns_wc_tail三个数组）。
 
 // 构建出这三个hash表以后，可以组合在一个ngx_hash_combined_t对象中，
@@ -90,8 +90,9 @@ typedef struct {
     ngx_pool_t       *pool;             // 内存池
     ngx_pool_t       *temp_pool;        // 临时内存池
 
-    ngx_array_t       keys;             // 存放所有非通配符key的数组
-    ngx_array_t      *keys_hash;        // 这是个二维数组，第一个维度代表的是bucket的编号，那么keys_hash[i]中存放的是所有的key算出来的hash值对hsize取模以后的值为i的key。
+    ngx_array_t       keys;             // 存放所有非通配符key的ngx_hash_key_t数组
+    ngx_array_t      *keys_hash;        // 存放按哈希分类的ngx_hash_key_t数组
+                                        // 这是个二维数组，keys_hash[ngx_hash_key_t % hsize] = array of ngx_hash_key_t
 
     ngx_array_t       dns_wc_head;      // 放前向通配符key被处理完成以后的值
     ngx_array_t      *dns_wc_head_hash; // 该值在调用的过程中用来保存和检测是否有冲突的前向通配符的key值，也就是是否有重复。
@@ -124,14 +125,14 @@ void *ngx_hash_find_combined(ngx_hash_combined_t *hash, ngx_uint_t key,
 // nelts是key元素数量
 ngx_int_t ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names,
     ngx_uint_t nelts);
-//初始化带通配符的hash表
+// 用names初始化带通配符的hash表
 ngx_int_t ngx_hash_wildcard_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names,
     ngx_uint_t nelts);
 
 #define ngx_hash(key, c)   ((ngx_uint_t) key * 31 + c)
-// 把data数据hash转换
+// 字符串计算哈希值
 ngx_uint_t ngx_hash_key(u_char *data, size_t len);
-// 把data数据转小写，再hash转换
+// 字符串转小写，再计算哈希值
 ngx_uint_t ngx_hash_key_lc(u_char *data, size_t len);
 // 同上，只不过把转换后的小写保存到dst
 ngx_uint_t ngx_hash_strlow(u_char *dst, u_char *src, size_t n);

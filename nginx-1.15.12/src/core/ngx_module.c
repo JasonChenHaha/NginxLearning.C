@@ -80,7 +80,7 @@ ngx_init_modules(ngx_cycle_t *cycle)
 }
 
 // 统计指定类型下面有多少个模块，
-// 同时将未设置ctz_index的分配一个顺序的序号
+// 同时将未设置ctx_index的分配一个顺序的序号
 ngx_int_t
 ngx_count_modules(ngx_cycle_t *cycle, ngx_uint_t type)
 {
@@ -107,6 +107,9 @@ ngx_count_modules(ngx_cycle_t *cycle, ngx_uint_t type)
                 max = module->ctx_index;
             }
 
+            // 因为module->ctx_index是乱序,
+            // 所以这里next的含义就是统计到目前为止,按顺序从0开始统计到多少序号了
+            // 这样就可以在下面调用ngx_module_ctx_index的时候,可以直接跳过检测前面的序号
             if (module->ctx_index == next) {
                 next++;
             }
@@ -115,7 +118,6 @@ ngx_count_modules(ngx_cycle_t *cycle, ngx_uint_t type)
         }
 
         /* search for some free index */
-
         module->ctx_index = ngx_module_ctx_index(cycle, type, next);
 
         if (module->ctx_index > max) {
@@ -213,6 +215,7 @@ ngx_add_module(ngx_conf_t *cf, ngx_str_t *file, ngx_module_t *module,
     before = cf->cycle->modules_n;
 
     if (order) {
+        // 找到module->name在order中的序号
         for (i = 0; order[i]; i++) {
             if (ngx_strcmp(order[i], module->name) == 0) {
                 i++;
@@ -220,6 +223,7 @@ ngx_add_module(ngx_conf_t *cf, ngx_str_t *file, ngx_module_t *module,
             }
         }
 
+        // 找到order[i]后面所有元素在cycle->modules中最小的下标
         for ( /* void */ ; order[i]; i++) {
 
 #if 0
@@ -245,6 +249,7 @@ ngx_add_module(ngx_conf_t *cf, ngx_str_t *file, ngx_module_t *module,
     /* put the module before modules[before] */
 
     if (before != cf->cycle->modules_n) {
+        // 把before到尾部的元素全部向后移动一位，腾出before位置
         ngx_memmove(&cf->cycle->modules[before + 1],
                     &cf->cycle->modules[before],
                     (cf->cycle->modules_n - before) * sizeof(ngx_module_t *));
@@ -277,7 +282,7 @@ ngx_add_module(ngx_conf_t *cf, ngx_str_t *file, ngx_module_t *module,
     return NGX_OK;
 }
 
-
+// 找到一个未使用的index
 static ngx_uint_t
 ngx_module_index(ngx_cycle_t *cycle)
 {
@@ -336,12 +341,13 @@ again:
 
         if (module->ctx_index == index) {
             index++;
+            // 因为module->ctx_index是乱序，因此下一个+1可能在任何位置，需要重新遍历
             goto again;
         }
     }
 
     /* check previous cycle */
-
+    // index不能和old_cycle的序号冲突
     if (cycle->old_cycle && cycle->old_cycle->modules) {
 
         for (i = 0; cycle->old_cycle->modules[i]; i++) {

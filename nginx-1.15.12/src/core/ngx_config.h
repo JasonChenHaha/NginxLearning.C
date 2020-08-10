@@ -100,6 +100,7 @@ typedef intptr_t        ngx_flag_t;
 #define ngx_align(d, a)     (((d) + (a - 1)) & ~(a - 1))
 #define ngx_align_ptr(p, a)                                                   \
     (u_char *) (((uintptr_t) (p) + ((uintptr_t) a - 1)) & ~((uintptr_t) a - 1))
+// 内存对齐, 数据项只能存储在地址是数据项大小的整数倍的内存位置上
 // 都是向上对齐
 // 为什么要 + (a - 1)，而不是 + (a)
 // 因为（二进制) (1000 + (1000 - 1)) & ~(1000 - 1) = 1000
