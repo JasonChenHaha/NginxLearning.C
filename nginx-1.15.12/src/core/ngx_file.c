@@ -45,6 +45,7 @@ ngx_get_full_name(ngx_pool_t *pool, ngx_str_t *prefix, ngx_str_t *name)
         return NGX_ERROR;
     }
 
+    // ngx_cpymem宏会把p = n + len
     p = ngx_cpymem(n, prefix->data, len);
     ngx_cpystrn(p, name->data, name->len + 1);
 

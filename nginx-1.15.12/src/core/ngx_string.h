@@ -147,8 +147,9 @@ ngx_copy(u_char *dst, u_char *src, size_t len)
 /* msvc and icc7 compile memcmp() to the inline loop */
 #define ngx_memcmp(s1, s2, n)  memcmp((const char *) s1, (const char *) s2, n)
 
-
+// 从src复制数据到dst
 u_char *ngx_cpystrn(u_char *dst, u_char *src, size_t n);
+// 从pool申请内存并从src复制数据
 u_char *ngx_pstrdup(ngx_pool_t *pool, ngx_str_t *src);
 u_char * ngx_cdecl ngx_sprintf(u_char *buf, const char *fmt, ...);
 u_char * ngx_cdecl ngx_snprintf(u_char *buf, size_t max, const char *fmt, ...);

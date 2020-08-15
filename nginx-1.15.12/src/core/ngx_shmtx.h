@@ -22,18 +22,18 @@ typedef struct {
 
 
 typedef struct {
-#if (NGX_HAVE_ATOMIC_OPS)
+#if (NGX_HAVE_ATOMIC_OPS)   // 原子锁
     ngx_atomic_t  *lock;
-#if (NGX_HAVE_POSIX_SEM)
+#if (NGX_HAVE_POSIX_SEM)    // 信号量
     ngx_atomic_t  *wait;
     ngx_uint_t     semaphore;
     sem_t          sem;
 #endif
 #else
-    ngx_fd_t       fd;
+    ngx_fd_t       fd;      // 文件锁
     u_char        *name;
 #endif
-    ngx_uint_t     spin;
+    ngx_uint_t     spin;    // 自旋锁
 } ngx_shmtx_t;
 
 

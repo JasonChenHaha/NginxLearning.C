@@ -31,6 +31,7 @@ extern char **environ;
 
 static char *ngx_os_argv_last;
 
+// 初始化进程名
 ngx_int_t
 ngx_init_setproctitle(ngx_log_t *log)
 {

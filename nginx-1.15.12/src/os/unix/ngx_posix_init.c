@@ -57,6 +57,7 @@ ngx_os_init(ngx_log_t *log)
 
 #if (NGX_HAVE_SC_NPROCESSORS_ONLN)
     if (ngx_ncpu == 0) {
+        // 获得系统可用核数
         ngx_ncpu = sysconf(_SC_NPROCESSORS_ONLN);
     }
 #endif
@@ -74,6 +75,7 @@ ngx_os_init(ngx_log_t *log)
 
     ngx_cpuinfo();
 
+    // 获得进程最大打开文件数
     if (getrlimit(RLIMIT_NOFILE, &rlmt) == -1) {
         ngx_log_error(NGX_LOG_ALERT, log, errno,
                       "getrlimit(RLIMIT_NOFILE) failed");

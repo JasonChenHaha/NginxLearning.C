@@ -140,6 +140,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     ngx_rbtree_init(&cycle->config_dump_rbtree, &cycle->config_dump_sentinel,
                     ngx_str_rbtree_insert_value);
 
+    
     // 初始化打开的文件链表
     if (old_cycle->open_files.part.nelts) {
         n = old_cycle->open_files.part.nelts;
@@ -1004,7 +1005,7 @@ ngx_init_zone_pool(ngx_cycle_t *cycle, ngx_shm_zone_t *zn)
     file = NULL;
 
 #else
-
+    // 如果不支持原子锁，创建文件锁
     file = ngx_pnalloc(cycle->pool,
                        cycle->lock_file.len + zn->shm.name.len + 1);
     if (file == NULL) {
@@ -1014,7 +1015,7 @@ ngx_init_zone_pool(ngx_cycle_t *cycle, ngx_shm_zone_t *zn)
     (void) ngx_sprintf(file, "%V%V%Z", &cycle->lock_file, &zn->shm.name);
 
 #endif
-
+    // 统一在这里创建锁
     if (ngx_shmtx_create(&sp->mutex, &sp->lock, file) != NGX_OK) {
         return NGX_ERROR;
     }

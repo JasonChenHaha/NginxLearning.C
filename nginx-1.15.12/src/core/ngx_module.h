@@ -235,13 +235,13 @@ struct ngx_module_s {
 
     ngx_uint_t            version;
 
-    // 上面的变量不需要在定义时赋值，可以用nginx准备好的宏NGX_MODULE_V1来定义
-    // 它已经定义好了这些值 #define NGX_MODULE_V1 0, 0, 0, 0, 0, 1
-
     const char           *signature;
+
+    // 上面的变量不需要在定义时赋值，可以用nginx准备好的宏NGX_MODULE_V1来定义
 
     void                 *ctx;              // 模块上下文
                                             // 里面其实是event对应的操作函数：初始化事件,添加事件,删除事件,等等
+                                            // type=NGX_CORE_MODULE核心模块存放的是ngx_core_module_t
     ngx_command_t        *commands;         // 模块支持的命令集
     ngx_uint_t            type;             // 模块类型
 

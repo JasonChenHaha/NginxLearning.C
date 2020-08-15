@@ -30,6 +30,7 @@ ngx_shmtx_create(ngx_shmtx_t *mtx, ngx_shmtx_sh_t *addr, u_char *name)
 
     mtx->wait = &addr->wait;
 
+    // 初始化信号量,1代表跨进程共享
     if (sem_init(&mtx->sem, 1, 0) == -1) {
         ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_errno,
                       "sem_init() failed");
@@ -212,6 +213,7 @@ ngx_shmtx_create(ngx_shmtx_t *mtx, ngx_shmtx_sh_t *addr, u_char *name)
         ngx_shmtx_destroy(mtx);
     }
 
+    // 创建文件锁即是创建文件fd
     mtx->fd = ngx_open_file(name, NGX_FILE_RDWR, NGX_FILE_CREATE_OR_OPEN,
                             NGX_FILE_DEFAULT_ACCESS);
 
@@ -221,6 +223,12 @@ ngx_shmtx_create(ngx_shmtx_t *mtx, ngx_shmtx_sh_t *addr, u_char *name)
         return NGX_ERROR;
     }
 
+    // 文件不被删除的条件有两个
+    //  1.文件链接数大于0
+    //  2.有进程打开文件
+    // 根据man unlink的描述，unlink删除目录项，并把文件链接数-1，所以即便链接数为0，
+    // 只要文件还有被进程打开，就不会真正被删除，当进程close文件时，系统检查
+    // 发现链接数为0，则自动删除文件
     if (ngx_delete_file(name) == NGX_FILE_ERROR) {
         ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, ngx_errno,
                       ngx_delete_file_n " \"%s\" failed", name);

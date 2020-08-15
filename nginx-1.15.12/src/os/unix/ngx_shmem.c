@@ -105,6 +105,8 @@ ngx_shm_alloc(ngx_shm_t *shm)
         ngx_log_error(NGX_LOG_ALERT, shm->log, ngx_errno, "shmat() failed");
     }
 
+    // 根据man手册显示, TPC_RMID:The segment will only actually be destroyed after the last process detaches it.
+    // 该操作标记内存区域为删除,但不会真正删除，只有当引用计数为0之后才会删除
     if (shmctl(id, IPC_RMID, NULL) == -1) {
         ngx_log_error(NGX_LOG_ALERT, shm->log, ngx_errno,
                       "shmctl(IPC_RMID) failed");

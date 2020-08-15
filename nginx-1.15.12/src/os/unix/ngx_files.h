@@ -17,6 +17,37 @@ typedef int                      ngx_fd_t;
 typedef struct stat              ngx_file_info_t;
 typedef ino_t                    ngx_file_uniq_t;
 
+// stat这个结构体是用来描述一个linux系统文件系统中的文件属性的结构。
+// struct stat {
+
+//     mode_t     st_mode;       //文件对应的模式，文件，目录等
+
+//     ino_t      st_ino;       //inode节点号
+
+//     dev_t      st_dev;        //设备号码
+
+//     dev_t      st_rdev;       //特殊设备号码
+
+//     nlink_t    st_nlink;      //文件的连接数
+
+//     uid_t      st_uid;        //文件所有者
+
+//     gid_t      st_gid;        //文件所有者对应的组
+
+//     off_t      st_size;       //普通文件，对应的文件字节数
+
+//     time_t     st_atime;      //文件最后被访问的时间
+
+//     time_t     st_mtime;      //文件内容最后被修改的时间
+
+//     time_t     st_ctime;      //文件状态改变时间
+
+//     blksize_t st_blksize;    //文件内容对应的块大小
+
+//     blkcnt_t   st_blocks;     //伟建内容对应的块数量
+
+// };
+
 
 typedef struct {
     u_char                      *name;

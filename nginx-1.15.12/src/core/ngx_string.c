@@ -930,7 +930,7 @@ ngx_atoi(u_char *line, size_t n)
         if (*line < '0' || *line > '9') {
             return NGX_ERROR;
         }
-
+        // 防止溢出
         if (value >= cutoff && (value > cutoff || *line - '0' > cutlim)) {
             return NGX_ERROR;
         }

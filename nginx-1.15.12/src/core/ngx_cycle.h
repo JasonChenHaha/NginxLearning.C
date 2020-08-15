@@ -75,12 +75,12 @@ struct ngx_cycle_s {
 
     ngx_cycle_t              *old_cycle;
 
-    ngx_str_t                 conf_file;            // 配置文件
+    ngx_str_t                 conf_file;            // 配置文件, 比如nginx.conf
     ngx_str_t                 conf_param;           // 配置参数
     ngx_str_t                 conf_prefix;          // 配置文件路径前缀
     ngx_str_t                 prefix;               // 配置文件路径前缀
     ngx_str_t                 lock_file;            // 锁文件
-    ngx_str_t                 hostname;
+    ngx_str_t                 hostname;             // gethostname系统调用得到的主机名
 };
 
 // ngx_code_conf_t的数据结构主要用于装载Nginx的nginx.conf的核心配置文件的参数

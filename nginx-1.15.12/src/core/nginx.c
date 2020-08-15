@@ -215,7 +215,7 @@ main(int argc, char *const *argv)
         return 1;
     }
 
-    if (ngx_show_version) {
+    if (ngx_show_version) { // 在ngx_get_options中赋值
         ngx_show_version_info();
 
         if (!ngx_test_config) {
@@ -237,7 +237,7 @@ main(int argc, char *const *argv)
     ngx_parent = ngx_getppid();
 
     // 根据./configure初始化并打开日志文件
-    log = ngx_log_init(ngx_prefix);
+    log = ngx_log_init(ngx_prefix);   // ngx_prefix在ngx_get_options中赋值
     if (log == NULL) {
         return 1;
     }
@@ -1004,18 +1004,20 @@ ngx_process_options(ngx_cycle_t *cycle)
 #endif
     }
 
-    if (ngx_conf_file) {
+    if (ngx_conf_file) { // 在ngx_get_options中赋值
         cycle->conf_file.len = ngx_strlen(ngx_conf_file);
         cycle->conf_file.data = ngx_conf_file;
 
-    } else {
+    } else { // 否则给定默认配置文件
         ngx_str_set(&cycle->conf_file, NGX_CONF_PATH);
     }
 
+    // 把conf_file拼上路径前缀prefix
     if (ngx_conf_full_name(cycle, &cycle->conf_file, 0) != NGX_OK) {
         return NGX_ERROR;
     }
 
+    // 找到路径前缀保存到conf_prefix
     for (p = cycle->conf_file.data + cycle->conf_file.len - 1;
          p > cycle->conf_file.data;
          p--)
