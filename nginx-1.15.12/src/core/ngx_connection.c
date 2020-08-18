@@ -408,7 +408,7 @@ ngx_set_inherited_sockets(ngx_cycle_t *cycle)
     return NGX_OK;
 }
 
-
+// socket启动监听
 ngx_int_t
 ngx_open_listening_sockets(ngx_cycle_t *cycle)
 {

@@ -1319,7 +1319,7 @@ ngx_inet_add_addr(ngx_pool_t *pool, ngx_url_t *u, struct sockaddr *sockaddr,
     return NGX_OK;
 }
 
-
+// 比较两个sock地址是否相同
 ngx_int_t
 ngx_cmp_sockaddr(struct sockaddr *sa1, socklen_t slen1,
     struct sockaddr *sa2, socklen_t slen2, ngx_uint_t cmp_port)

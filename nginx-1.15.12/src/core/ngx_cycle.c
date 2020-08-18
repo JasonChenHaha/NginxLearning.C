@@ -424,6 +424,9 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     part = &cycle->shared_memory.part;
     shm_zone = part->elts;
 
+    // 把old_cycle的共享内存过继到cycle,有两种方式
+    // 1.直接拷贝地址
+    // 2.重新开辟内存
     for (i = 0; /* void */ ; i++) {
 
         if (i >= part->nelts) {
@@ -474,6 +477,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
                 && shm_zone[i].shm.size == oshm_zone[n].shm.size
                 && !shm_zone[i].noreuse)
             {
+                // 直接拷贝地址
                 shm_zone[i].shm.addr = oshm_zone[n].shm.addr;
 #if (NGX_WIN32)
                 shm_zone[i].shm.handle = oshm_zone[n].shm.handle;
@@ -491,10 +495,12 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
             break;
         }
 
+        // 重新开辟内存
         if (ngx_shm_alloc(&shm_zone[i].shm) != NGX_OK) {
             goto failed;
         }
 
+        // 初始化共享内存的slab管理器和锁
         if (ngx_init_zone_pool(cycle, &shm_zone[i]) != NGX_OK) {
             goto failed;
         }
@@ -624,7 +630,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     }
 
     // 上面对需要创建的socket做一些前置标记
-    // 统一在这个函数创建socket和bind
+    // 然后统一在这个函数创建socket监听
     if (ngx_open_listening_sockets(cycle) != NGX_OK) {
         goto failed;
     }
@@ -966,6 +972,7 @@ ngx_init_zone_pool(ngx_cycle_t *cycle, ngx_shm_zone_t *zn)
     u_char           *file;
     ngx_slab_pool_t  *sp;
 
+    // 初始化slab
     sp = (ngx_slab_pool_t *) zn->shm.addr;
 
     if (zn->shm.exists) {
