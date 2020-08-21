@@ -792,7 +792,9 @@ old_shm_zone_done:
         return cycle;
     }
 
-
+    // 创建临时内存池
+    // 在它里面生成ngx_cycle_t数组
+    // 然后把old_cycle塞进去
     if (ngx_temp_pool == NULL) {
         ngx_temp_pool = ngx_create_pool(128, cycle->log);
         if (ngx_temp_pool == NULL) {
@@ -835,6 +837,8 @@ old_shm_zone_done:
 
 
 failed:
+    // 失败处理
+    // 关闭打开文件，销毁共享内存，关闭socket，销毁内存池
 
     if (!ngx_is_init_cycle(old_cycle)) {
         old_ccf = (ngx_core_conf_t *) ngx_get_conf(old_cycle->conf_ctx,
@@ -1114,6 +1118,7 @@ ngx_signal_process(ngx_cycle_t *cycle, char *sig)
     file.name = ccf->pid;
     file.log = cycle->log;
 
+    // 读文件获取fd
     file.fd = ngx_open_file(file.name.data, NGX_FILE_RDONLY,
                             NGX_FILE_OPEN, NGX_FILE_DEFAULT_ACCESS);
 

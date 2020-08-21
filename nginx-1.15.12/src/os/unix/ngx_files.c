@@ -26,7 +26,7 @@ ngx_uint_t  ngx_file_aio = 1;
 
 #endif
 
-
+// 读文件, 在offset位置读size长度的数据, 返回读取长度n
 ssize_t
 ngx_read_file(ngx_file_t *file, u_char *buf, size_t size, off_t offset)
 {

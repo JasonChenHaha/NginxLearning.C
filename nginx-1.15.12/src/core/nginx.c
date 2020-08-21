@@ -559,6 +559,7 @@ ngx_set_environment(ngx_cycle_t *cycle, ngx_uint_t *last)
 
     var = ccf->env.elts;
 
+    // 查找或者插入TZ
     for (i = 0; i < ccf->env.nelts; i++) {
         if (ngx_strcmp(var[i].data, "TZ") == 0
             || ngx_strncmp(var[i].data, "TZ=", 3) == 0)
@@ -581,6 +582,8 @@ tz_found:
 
     n = 0;
 
+    // 在ccf->env中查找指定长度
+    // 和ngx_os_environ中相匹配的元素数量
     for (i = 0; i < ccf->env.nelts; i++) {
 
         if (var[i].data[var[i].len] == '=') {
@@ -623,7 +626,7 @@ tz_found:
     }
 
     n = 0;
-
+    // 拷贝
     for (i = 0; i < ccf->env.nelts; i++) {
 
         if (var[i].data[var[i].len] == '=') {

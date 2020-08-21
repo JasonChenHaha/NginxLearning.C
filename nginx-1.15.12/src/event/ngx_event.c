@@ -556,6 +556,7 @@ ngx_event_module_init(ngx_cycle_t *cycle)
     ngx_int_t      limit;
     struct rlimit  rlmt;
 
+    // 获取进程最大打开文件数
     if (getrlimit(RLIMIT_NOFILE, &rlmt) == -1) {
         ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                       "getrlimit(RLIMIT_NOFILE) failed, ignored");
@@ -834,7 +835,6 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
         c[i].data = next;
         // 初始化所有空闲连接的读写回调函数
-        // 需要注意的是此时数组还没有被赋值
         c[i].read = &cycle->read_events[i];
         c[i].write = &cycle->write_events[i];
         c[i].fd = (ngx_socket_t) -1;
@@ -936,13 +936,14 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         }
 
 #else
-        // 指定连接事件回调
+        // 指定连接事件回调 tcp/udp
         rev->handler = (c->type == SOCK_STREAM) ? ngx_event_accept
                                                 : ngx_event_recvmsg;
 
 #if (NGX_HAVE_REUSEPORT)
 
         if (ls[i].reuseport) {
+            // 如果是epoll module，就会调用ngx_epoll_add_event
             if (ngx_add_event(rev, NGX_READ_EVENT, 0) == NGX_ERROR) {
                 return NGX_ERROR;
             }

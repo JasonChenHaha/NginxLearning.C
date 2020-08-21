@@ -1113,8 +1113,8 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
     }
 
     c = ngx_cycle->free_connections;
-
     if (c == NULL) {
+        // 发现没有空闲连接之后，释放一些keepalive的链接
         ngx_drain_connections((ngx_cycle_t *) ngx_cycle);
         c = ngx_cycle->free_connections;
     }
@@ -1127,9 +1127,11 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
         return NULL;
     }
 
+    // c->data指向的是下一个ngx_connection_t结构体
     ngx_cycle->free_connections = c->data;
     ngx_cycle->free_connection_n--;
 
+    // files是ngx_connection_t数组指针,存放已用连接
     if (ngx_cycle->files && ngx_cycle->files[s] == NULL) {
         ngx_cycle->files[s] = c;
     }
@@ -1295,7 +1297,7 @@ ngx_reusable_connection(ngx_connection_t *c, ngx_uint_t reusable)
     }
 }
 
-
+// 将一些keepalive连接释放掉
 static void
 ngx_drain_connections(ngx_cycle_t *cycle)
 {
@@ -1316,6 +1318,7 @@ ngx_drain_connections(ngx_cycle_t *cycle)
         ngx_log_debug0(NGX_LOG_DEBUG_CORE, c->log, 0,
                        "reusing connection");
 
+        // handler内部会把这个ngx_connection_t从queue删除
         c->close = 1;
         c->read->handler(c->read);
     }

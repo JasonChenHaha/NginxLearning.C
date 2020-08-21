@@ -281,7 +281,7 @@ ngx_execute_proc(ngx_cycle_t *cycle, void *data)
     exit(1);
 }
 
-
+// 设置信号回调函数
 ngx_int_t
 ngx_init_signals(ngx_log_t *log)
 {
@@ -628,7 +628,7 @@ ngx_debug_point(void)
     }
 }
 
-
+// 发送信号
 ngx_int_t
 ngx_os_signal_process(ngx_cycle_t *cycle, char *name, ngx_pid_t pid)
 {

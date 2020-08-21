@@ -132,7 +132,7 @@ typedef enum {
 
 
 struct ngx_connection_s {
-    void               *data;
+    void               *data;   // 初始化被赋值为下一个ngx_connection_s指针，串起来成为链表
     ngx_event_t        *read;
     ngx_event_t        *write;
 
