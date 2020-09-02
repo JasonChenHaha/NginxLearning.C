@@ -58,6 +58,7 @@ ngx_list_push(ngx_list_t *l)
         l->last = last;
     }
 
+    // 起始地址+已经使用的偏移
     elt = (char *) last->elts + l->size * last->nelts;
     last->nelts++;
 

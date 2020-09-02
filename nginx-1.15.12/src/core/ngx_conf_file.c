@@ -460,6 +460,7 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
                 }
             }
 
+            // 其中之一就是调用ngx_http module的ngx_http_block
             rv = cmd->set(cf, cmd, conf);
 
             if (rv == NGX_CONF_OK) {

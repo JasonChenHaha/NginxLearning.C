@@ -15,9 +15,9 @@
 
 
 typedef struct {
-    ngx_uint_t  command;
+    ngx_uint_t  command; // 传递的TCP消息中的命令
     ngx_pid_t   pid;
-    ngx_int_t   slot;
+    ngx_int_t   slot;	//表示发送命令方在 ngx_processes进程数组间的序号
     ngx_fd_t    fd;
 } ngx_channel_t;
 

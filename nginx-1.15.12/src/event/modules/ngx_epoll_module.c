@@ -181,6 +181,7 @@ static ngx_event_module_t  ngx_epoll_module_ctx = {
     ngx_epoll_create_conf,               /* create configuration */
     ngx_epoll_init_conf,                 /* init configuration */
 
+    // 初始化ngx_event_actions_t结构
     {
         ngx_epoll_add_event,             /* add an event */
         ngx_epoll_del_event,             /* delete an event */
@@ -366,7 +367,9 @@ ngx_epoll_init(ngx_cycle_t *cycle, ngx_msec_t timer)
 
     ngx_io = ngx_os_io;
 
+    // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
     ngx_event_actions = ngx_epoll_module_ctx.actions;
+    // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
 
 #if (NGX_HAVE_CLEAR_EVENT)
     ngx_event_flags = NGX_USE_CLEAR_EVENT
@@ -897,9 +900,10 @@ ngx_epoll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags)
             // 如果有NGX_POST_EVENTS，把连接和读事件分开插入队列
             // 延后处理
             if (flags & NGX_POST_EVENTS) {
+                // 在ngx_event_process_init中已经把所有监听fd的accept=1
                 queue = rev->accept ? &ngx_posted_accept_events
                                     : &ngx_posted_events;
-
+                // 插入queue链表尾部
                 ngx_post_event(rev, queue);
 
             } else {    // 否则直接处理

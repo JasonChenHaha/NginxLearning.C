@@ -133,6 +133,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
     // 启动工作进程 - 多进程启动的核心函数
     ngx_start_worker_processes(cycle, ccf->worker_processes,
                                NGX_PROCESS_RESPAWN);
+    // 当nginx作为缓存服务时核心处理函数
     ngx_start_cache_manager_processes(cycle, 0);
 
     ngx_new_binary = 0;
@@ -338,6 +339,7 @@ ngx_single_process_cycle(ngx_cycle_t *cycle)
             ngx_master_process_exit(cycle);
         }
 
+        // 重新加载配置
         if (ngx_reconfigure) {
             ngx_reconfigure = 0;
             ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "reconfiguring");
@@ -351,6 +353,7 @@ ngx_single_process_cycle(ngx_cycle_t *cycle)
             ngx_cycle = cycle;
         }
 
+        // 重新打开文件
         if (ngx_reopen) {
             ngx_reopen = 0;
             ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "reopening logs");
@@ -381,6 +384,7 @@ ngx_start_worker_processes(ngx_cycle_t *cycle, ngx_int_t n, ngx_int_t type)
         ch.slot = ngx_process_slot;
         ch.fd = ngx_processes[ngx_process_slot].channel[0];
 
+        // ngx_channel_t结构包含的数据通过channel发送给worker
         ngx_pass_open_channel(cycle, &ch);
     }
 }
@@ -571,7 +575,7 @@ ngx_signal_worker_processes(ngx_cycle_t *cycle, int signo)
     }
 }
 
-
+// 子进程处理，要拉起的重新拉起，要关闭的关闭channel
 static ngx_uint_t
 ngx_reap_children(ngx_cycle_t *cycle)
 {

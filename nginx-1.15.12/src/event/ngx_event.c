@@ -226,6 +226,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
         flags = 0;
 
     } else {
+        // 找到一个最近的timer，提供给epoll_wait用作超时时间，防止epoll_wait阻塞太久影响timer触发
         timer = ngx_event_find_timer();
         flags = NGX_UPDATE_TIME;
 
@@ -254,12 +255,12 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
 
         } else {
             // 尝试解锁
-            // 在内部把socket加到epoll上
+            // 在内部遍历，把所有未绑定读事件的fd的读事件加到epoll上
             if (ngx_trylock_accept_mutex(cycle) == NGX_ERROR) {
                 return;
             }
 
-            // 拿到锁
+            // 在ngx_trylock_accept_mutex中拿到锁之后，设置的标记
             if (ngx_accept_mutex_held) {
                 /**
                  * 给flags增加标记NGX_POST_EVENTS，这个标记作为处理时间核心函数ngx_process_events的一个参数，这个函数中所有事件将延后处理。
@@ -289,7 +290,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
      * 参数：timer-epoll_wait超时时间  (ngx_accept_mutex_delay-延迟拿锁事件   NGX_TIMER_INFINITE-正常的epollwait等待事件)
      */
     // ngx_process_events是宏 ngx_event_actions.process_events
-    // ngx_event_actions结构体是在ngx_process_cycle的init_process指向的
+    // 全局变量ngx_event_actions结构体是在ngx_process_cycle的init_process指向的
     // ngx_event_process_init内赋值的
     (void) ngx_process_events(cycle, timer, flags);
 
@@ -303,9 +304,9 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
      * 2. 这个方法是循环处理accpet事件列队上的accpet事件
      */
 
-    // 对于事件的处理，如果是accept事件，则将其交由ngx_event_accept.c的ngx_event_accept()方法处理；
-    // 如果是读事件，则将其交由ngx_http_request.c的ngx_http_wait_request_handler()方法处理；
-    // 对于处理完成的事件，最后会交由ngx_http_request.c的ngx_http_keepalive_handler()方法处理。
+    // 对于事件的处理，如果是accept事件，则将其交由ngx_event_accept.c的ngx_event_accept()方法处理(在ngx_event_process_init中赋值handler)
+    // 如果是读事件，则将其交由ngx_http_request.c的ngx_http_wait_request_handler()方法处理
+    // 对于处理完成的事件，最后会交由ngx_http_request.c的ngx_http_keepalive_handler()方法处理
 
     // 这里开始处理除accept事件外的其他事件
     ngx_event_process_posted(cycle, &ngx_posted_accept_events);
@@ -315,6 +316,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
         ngx_shmtx_unlock(&ngx_accept_mutex);
     }
 
+    // 处理定时器超时事件
     if (delta) {
         ngx_event_expire_timers();
     }
@@ -729,6 +731,8 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
         module = cycle->modules[m]->ctx;
 
+        // type(module) = ngx_event_module_t
+        // init在ngx_epoll_module中是ngx_epoll_init
         if (module->actions.init(cycle, ngx_timer_resolution) != NGX_OK) {
             /* fatal */
             exit(2);
@@ -926,6 +930,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
             // 指定连接事件回调
             rev->handler = ngx_event_accept;
 
+
             if (ngx_use_accept_mutex) {
                 continue;
             }
@@ -937,8 +942,10 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
 #else
         // 指定连接事件回调 tcp/udp
+        // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
         rev->handler = (c->type == SOCK_STREAM) ? ngx_event_accept
                                                 : ngx_event_recvmsg;
+        // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
 
 #if (NGX_HAVE_REUSEPORT)
 

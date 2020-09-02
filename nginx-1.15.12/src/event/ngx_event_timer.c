@@ -28,7 +28,7 @@ ngx_event_timer_init(ngx_log_t *log)
     return NGX_OK;
 }
 
-
+// 从红黑树上获取最小节点，判断节点的时间戳是否到时
 ngx_msec_t
 ngx_event_find_timer(void)
 {

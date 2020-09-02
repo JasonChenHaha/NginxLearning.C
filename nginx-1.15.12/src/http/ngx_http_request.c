@@ -321,7 +321,9 @@ ngx_http_init_connection(ngx_connection_t *c)
     c->log_error = NGX_ERROR_INFO;
 
     rev = c->read;
+    // 绑定读事件回调
     rev->handler = ngx_http_wait_request_handler;
+    // 绑定写事件回调
     c->write->handler = ngx_http_empty_handler;
 
 #if (NGX_HTTP_V2)
@@ -362,8 +364,10 @@ ngx_http_init_connection(ngx_connection_t *c)
     }
 
     ngx_add_timer(rev, c->listening->post_accept_timeout);
+    // c从c->queue上删除放到复用链表上
     ngx_reusable_connection(c, 1);
 
+    // 往epoll绑定读事件
     if (ngx_handle_read_event(rev, 0) != NGX_OK) {
         ngx_http_close_connection(c);
         return;

@@ -31,6 +31,7 @@ ngx_event_accept(ngx_event_t *ev)
     static ngx_uint_t  use_accept4 = 1;
 #endif
 
+    // 超时连接重新绑定读事件到epoll
     if (ev->timedout) {
         if (ngx_enable_accept_events((ngx_cycle_t *) ngx_cycle) != NGX_OK) {
             return;
@@ -64,7 +65,7 @@ ngx_event_accept(ngx_event_t *ev)
 #else
         s = accept(lc->fd, &sa.sockaddr, &socklen);
 #endif
-
+        // 错误处理
         if (s == (ngx_socket_t) -1) {
             err = ngx_socket_errno;
 
@@ -106,6 +107,7 @@ ngx_event_accept(ngx_event_t *ev)
                 }
             }
 
+            // 超过进程/系统最大打开文件数，直接关闭
             if (err == NGX_EMFILE || err == NGX_ENFILE) {
                 if (ngx_disable_accept_events((ngx_cycle_t *) ngx_cycle, 1)
                     != NGX_OK)
@@ -122,6 +124,7 @@ ngx_event_accept(ngx_event_t *ev)
                     ngx_accept_disabled = 1;
 
                 } else {
+                    // 定时重新加入(本函数头部加入)
                     ngx_add_timer(ev, ecf->accept_mutex_delay);
                 }
             }
@@ -136,6 +139,7 @@ ngx_event_accept(ngx_event_t *ev)
         ngx_accept_disabled = ngx_cycle->connection_n / 8
                               - ngx_cycle->free_connection_n;
 
+        // 用ngx_connection_t包装s
         c = ngx_get_connection(s, ev->log);
 
         if (c == NULL) {
@@ -202,6 +206,8 @@ ngx_event_accept(ngx_event_t *ev)
 
         *log = ls->log;
 
+        // ngx_io.recv，ngx_io在ngx_epoll_init用ngx_os_io赋值
+        // ngx_os_io本身也是ngx_os_io_t类型的全局变量，位于ngx_posix_init.c头部定义
         c->recv = ngx_recv;
         c->send = ngx_send;
         c->recv_chain = ngx_recv_chain;
@@ -296,7 +302,7 @@ ngx_event_accept(ngx_event_t *ev)
 #endif
 
         if (ngx_add_conn && (ngx_event_flags & NGX_USE_EPOLL_EVENT) == 0) {
-            // 把新建的连接加到epoll
+            // 把新建的连接加到epoll,(ngx_epoll_add_connection)
             if (ngx_add_conn(c) == NGX_ERROR) {
                 ngx_close_accepted_connection(c);
                 return;
@@ -359,8 +365,7 @@ ngx_trylock_accept_mutex(ngx_cycle_t *cycle)
     return NGX_OK;
 }
 
-// 开启accept事件的监听
-// 并将其加入到event上
+// 把未添加读事件的连接添加上读事件
 ngx_int_t
 ngx_enable_accept_events(ngx_cycle_t *cycle)
 {
