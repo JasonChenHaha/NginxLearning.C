@@ -1502,7 +1502,7 @@ ngx_http_process_request_headers(ngx_event_t *rev)
         }
 
         /* 如果HTTP的header全部处理*/
-        if (rc == NGX_HTTP_PARSE_HEADER_DONE) {
+        if (rc == NGX_HTTP_PARSE_HEADER_DONE) { 
 
             /* a whole header has been parsed successfully */
 

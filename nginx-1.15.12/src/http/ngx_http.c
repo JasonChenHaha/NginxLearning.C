@@ -304,6 +304,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         module = cf->cycle->modules[m]->ctx;
 
+        // 每个module在这个函数内将回调函数注册到对应的phase阶段上
         if (module->postconfiguration) {
             if (module->postconfiguration(cf) != NGX_OK) {
                 return NGX_CONF_ERROR;

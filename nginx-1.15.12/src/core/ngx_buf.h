@@ -60,7 +60,7 @@ struct ngx_buf_s {
 // 缓冲区链表，放在pool内存池中, pool->chain
 struct ngx_chain_s {
     ngx_buf_t    *buf;
-    ngx_chain_t  *next;     // 就是ngx_chain_s
+    ngx_chain_t  *next;
 };
 
 // 用来作为ngx_create_chain_of_bufs函数的入参包装的结构体
